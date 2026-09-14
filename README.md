@@ -62,12 +62,12 @@ is started until you say so:
 sdx start
 sdx vpn add router
 sdx proxy add vless 443
-sdx export -o /tmp/seedex
+sdx export -o <dir>
 ```
 
 ## Router
 
-The files in `/tmp/seedex` are native AmneziaWG and sing-box client configs.
+`sdx export` writes native AmneziaWG and sing-box client configs.
 [seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) takes them with
 `sdx import`; phones and laptops take them with their usual apps.
 
