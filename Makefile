@@ -1,6 +1,13 @@
 PART ?= patch
+VERSION = $(shell cat version)
+LDFLAGS = -s -w -X main.version=$(VERSION)
 
-.PHONY: install bump lint
+.PHONY: build install bump lint clean
+
+build:
+	cd link && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="$(LDFLAGS)" -o ../build/seedex-link_linux_amd64 .
+	cd link && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="$(LDFLAGS)" -o ../build/seedex-link_linux_arm64 .
+	cd build && sha256sum seedex-link_linux_* > checksums.txt
 
 install:
 	bash install.sh
@@ -24,3 +31,8 @@ bump:
 lint:
 	shfmt -l -d sdx install.sh lib/*.sh
 	shellcheck -x sdx install.sh lib/*.sh
+	test -z "$$(gofmt -l link)" || { gofmt -l link; exit 1; }
+	cd link && go vet ./...
+
+clean:
+	rm -rf build

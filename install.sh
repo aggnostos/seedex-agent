@@ -14,19 +14,21 @@ die() {
 
 [ "$(id -u)" -eq 0 ] || die "must be run as root"
 
+export SEEDEX_BUILD_DIR="$SRC/build"
+
 SVC="${1:-}"
 case "$SVC" in
-"" | vpn | proxy | files) ;;
-*) die "unknown target: $SVC (vpn, proxy, or files to skip provisioning)" ;;
+"" | vpn | proxy | link | files) ;;
+*) die "unknown target: $SVC (vpn, proxy, link, or files to skip provisioning)" ;;
 esac
 
-for f in sdx version lib/common.sh lib/vpn.sh lib/proxy.sh; do
+for f in sdx version lib/common.sh lib/vpn.sh lib/proxy.sh lib/link.sh; do
 	[ -f "$SRC/$f" ] || die "$f not found next to install.sh"
 done
 
 log "installing files"
 install -d -m 0755 "$LIBDIR"
-for f in common.sh vpn.sh proxy.sh; do
+for f in common.sh vpn.sh proxy.sh link.sh; do
 	install -m 0644 "$SRC/lib/$f" "$LIBDIR/$f"
 	echo "  $LIBDIR/$f"
 done
@@ -48,7 +50,7 @@ provision() {
 
 echo
 if [ "$SVC" = files ]; then
-	for svc in vpn proxy; do
+	for svc in vpn proxy link; do
 		(
 			# shellcheck source=lib/common.sh
 			. "$LIBDIR/common.sh"
@@ -66,6 +68,9 @@ esac
 case "$SVC" in
 "" | proxy) provision proxy ;;
 esac
+case "$SVC" in
+"" | link) provision link ;;
+esac
 
 log "done — seedex $("$BINDIR/sdx" version | awk '{print $2}') installed"
 cat <<'EOF'
@@ -77,6 +82,7 @@ when convenient:
 
 Then:
 
-  sdx
-  sdx export -o /tmp/seedex           # native configs to import on the Box
+  sdx                                 # status
+  sdx link add router                 # pair a router: prints the command to run on it
+  sdx export -o <dir>                 # or hand the native configs over yourself
 EOF

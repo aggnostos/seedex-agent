@@ -9,7 +9,7 @@ SEEDEX_LIB="${SEEDEX_LIB:-/usr/local/lib/seedex}"
 	exit 1
 }
 
-SEEDEX_SERVICES="vpn proxy"
+SEEDEX_SERVICES="vpn proxy link"
 
 _lib() {
 	local path="$SEEDEX_LIB/${1}.sh"
@@ -53,6 +53,7 @@ _svc_label() {
 	case "$1" in
 	vpn) echo "VPN" ;;
 	proxy) echo "Proxy" ;;
+	link) echo "Link" ;;
 	*) echo "$1" ;;
 	esac
 }
@@ -105,7 +106,7 @@ cmd_firewall() {
 		firewall_apply $SEEDEX_PORTS_BASE $SEEDEX_PORTS_VPN $(
 			. "$(_lib proxy)"
 			_proto_port_specs
-		)
+		) "${SEEDEX_LINK_PORT:-8447}/tcp:seedex-link"
 		echo "Firewall configured"
 		ufw status numbered
 		;;
@@ -122,22 +123,23 @@ cmd_help() {
 		echo "$PROXY_PROTOCOLS"
 	)
 	echo "Usage: sdx [<service>]                      Status of the server, or of one service"
-	echo "       sdx <service> <action> [options]     service: vpn, proxy"
+	echo "       sdx <service> <action> [options]     service: vpn, proxy, link"
 	echo "       sdx <action> [options]               every service that has the action"
 	echo
 	section "Service:"
 	echo "  start | stop | restart        Control the service"
 	echo "  config                        Show connection credentials"
-	echo "  logs [-f] [-n N]              Show logs"
 	echo "  rotate [protocol]             Regenerate credentials: every vpn client, one proxy protocol or all"
 	echo "  export [name] [-o DIR]        Export client configs, one or all, to DIR"
 	echo
-	section "Entries (clients in vpn, protocols in proxy):"
+	section "Entries (clients in vpn, protocols in proxy, routers in link):"
 	echo "  add [<name>]                  vpn: add a client"
 	echo "  add <protocol> <port>         proxy: add a protocol on a port and open it"
 	echo "                                  $protocols"
+	echo "  add <router>                  link: issue a token for a router and print its command"
 	echo "  remove {<name>|--all}         vpn: revoke a client"
 	echo "  remove <protocol>             proxy: remove a protocol and close its port"
+	echo "  remove <router>               link: unpair a router"
 	echo
 	section "Server:"
 	echo "  firewall setup|status         Configure or show the firewall"
@@ -155,7 +157,7 @@ cmd_svc_help() {
 
 SVC=""
 case "${1:-}" in
-vpn | proxy)
+vpn | proxy | link)
 	SVC="$1"
 	shift
 	;;
