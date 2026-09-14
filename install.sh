@@ -60,8 +60,12 @@ if [ "$SVC" = files ]; then
 	log "done — seedex $("$BINDIR/sdx" version | awk '{print $2}') files updated"
 	exit 0
 fi
-[ -n "$SVC" ] && [ "$SVC" != vpn ] || provision vpn
-[ -n "$SVC" ] && [ "$SVC" != proxy ] || provision proxy
+case "$SVC" in
+"" | vpn) provision vpn ;;
+esac
+case "$SVC" in
+"" | proxy) provision proxy ;;
+esac
 
 log "done — seedex $("$BINDIR/sdx" version | awk '{print $2}') installed"
 cat <<'EOF'
