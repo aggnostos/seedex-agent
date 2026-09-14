@@ -20,7 +20,13 @@ Reality, Trojan, Shadowsocks, ShadowTLS, VMess, Hysteria2, TUIC, AnyTLS — each
 on a port of your choice, with credentials generated per protocol and rotated
 without touching the port.
 
-Both come with the firewall, systemd units and log rotation taken care of.
+**Link.** A small HTTPS API the router pairs with once and then pulls its
+configs from on its own — a new client, a rotated credential or a new protocol
+reaches the router without copying files, and the router picks which of the
+configs it wants. Each router gets its own token; the certificate is pinned at
+pairing.
+
+All three come with the firewall, systemd units and log rotation taken care of.
 
 ## What it looks like
 
@@ -33,7 +39,6 @@ $ sdx
     laptop
     phone
     router
-  Logs:           /var/log/seedex-vpn/vpn.log (4.0K)
 
 [*] Proxy:
   Protocols:
@@ -41,7 +46,12 @@ $ sdx
     hysteria2      8444/udp
     shadowtls      8443/tcp
     vless          443/tcp
-  Logs:           /var/log/seedex-proxy/sing-box.log (672K)
+
+[*] Link:
+  Port:           8447/tcp
+  Fingerprint:    sha256//k3Xr…
+  Routers:
+    router
 ```
 
 ## Install
@@ -54,22 +64,25 @@ cd seedex-agent
 make install
 ```
 
-This installs the `sdx` command, AmneziaWG and a pinned sing-box release,
-generates the server keys, opens the ports and enables both services. Nothing
-is started until you say so:
+This installs the `sdx` command, AmneziaWG, a pinned sing-box release and the
+link API, generates the server keys, opens the ports and enables the
+services. Nothing is started until you say so:
 
 ```sh
 sdx start
-sdx vpn add router
 sdx proxy add vless 443
-sdx export -o <dir>
+sdx link add router
 ```
+
+The last command prints the token, the certificate fingerprint and the one
+line to run on the router; from then on the router keeps its configs in sync
+by itself.
 
 ## Router
 
-`sdx export` writes native AmneziaWG and sing-box client configs.
-[seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) takes them with
-`sdx import`; phones and laptops take them with their usual apps.
+[seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) pairs with the
+link API, or takes the native AmneziaWG and sing-box client configs written by
+`sdx export`; phones and laptops take those with their usual apps.
 
 ## License
 
