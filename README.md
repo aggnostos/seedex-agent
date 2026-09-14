@@ -5,6 +5,8 @@
   </picture>
 </p>
 
+<p align="center">English | <a href="README_RU.md">Русский</a></p>
+
 Seedex Agent turns a plain Ubuntu server into the far end of a Seedex tunnel:
 one command sets it up, one more issues a client config the router imports
 as it is.
