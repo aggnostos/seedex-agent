@@ -1,0 +1,202 @@
+#!/bin/bash
+
+set -euo pipefail
+
+SEEDEX_LIB="${SEEDEX_LIB:-/usr/local/lib/seedex}"
+# shellcheck source=lib/common.sh
+. "$SEEDEX_LIB/common.sh" 2>/dev/null || {
+	printf '%s: cannot load %s/common.sh — run install.sh\n' "${0##*/}" "$SEEDEX_LIB" >&2
+	exit 1
+}
+
+SEEDEX_SERVICES="vpn proxy"
+
+_lib() {
+	local path="$SEEDEX_LIB/${1}.sh"
+	[ -f "$path" ] || die "missing service library: $path (run install.sh)"
+	echo "$path"
+}
+
+_svc() {
+	local svc="$1"
+	shift
+	# shellcheck disable=SC1090  # path resolved at runtime
+	(
+		. "$(_lib "$svc")"
+		svc_dispatch "$@"
+	)
+}
+
+_svc_help() {
+	# shellcheck disable=SC1090
+	(
+		. "$(_lib "$1")"
+		svc_help
+	)
+}
+
+_svc_has() {
+	local actions
+	# shellcheck disable=SC1090
+	actions=$(
+		. "$(_lib "$1")"
+		echo "${SVC_ACTIONS:-}"
+	)
+	[ -n "$actions" ] || die "$1: the service library defines no SVC_ACTIONS"
+	case " $actions " in
+	*" $2 "*) return 0 ;;
+	esac
+	return 1
+}
+
+_svc_label() {
+	case "$1" in
+	vpn) echo "VPN" ;;
+	proxy) echo "Proxy" ;;
+	*) echo "$1" ;;
+	esac
+}
+
+cmd_status() {
+	local svc first=1 status=0
+	for svc in $SEEDEX_SERVICES; do
+		[ "$first" = 1 ] || echo
+		first=0
+		_svc "$svc" status || status=1
+	done
+	return "$status"
+}
+
+_fan_out() {
+	local action="$1"
+	shift
+	local svc out ran=0 status=0
+
+	for svc in $SEEDEX_SERVICES; do
+		_svc_has "$svc" "$action" || continue
+		ran=1
+		printf '%s:\n' "$(_svc_label "$svc")"
+		if ! out=$(_svc "$svc" "$action" "$@" 2>&1); then
+			status=1
+		fi
+		if [ -n "$out" ]; then
+			printf '%s\n' "$out" | indent
+		fi
+	done
+
+	[ "$ran" = 1 ] || {
+		printf 'unknown action: %s\n\n' "$action" >&2
+		cmd_help >&2
+		exit 2
+	}
+	return "$status"
+}
+
+_no_svc() {
+	[ -z "$SVC" ] || die "'$1' is not a per-service command — drop the '$SVC'"
+}
+
+cmd_firewall() {
+	need_root
+
+	case "${1:-status}" in
+	setup)
+		# shellcheck disable=SC2086,SC2046,SC1090
+		firewall_apply $SEEDEX_PORTS_BASE $SEEDEX_PORTS_VPN $(
+			. "$(_lib proxy)"
+			_proto_port_specs
+		)
+		echo "Firewall configured"
+		ufw status numbered
+		;;
+	status) ufw status verbose ;;
+	*) usage "sdx firewall {setup|status}" ;;
+	esac
+}
+
+cmd_help() {
+	local protocols
+	# shellcheck disable=SC1090
+	protocols=$(
+		. "$(_lib proxy)"
+		echo "$PROXY_PROTOCOLS"
+	)
+	echo "Usage: sdx [<service>]                      Status of the server, or of one service"
+	echo "       sdx <service> <action> [options]     service: vpn, proxy"
+	echo "       sdx <action> [options]               every service that has the action"
+	echo
+	section "Service:"
+	echo "  start | stop | restart        Control the service"
+	echo "  config                        Show connection credentials"
+	echo "  logs [-f] [-n N]              Show logs"
+	echo "  rotate [protocol]             Regenerate credentials: every vpn client, one proxy protocol or all"
+	echo "  export [name] [-o DIR]        Export client configs, one or all, to DIR"
+	echo
+	section "Entries (clients in vpn, protocols in proxy):"
+	echo "  add [<name>]                  vpn: add a client"
+	echo "  add <protocol> <port>         proxy: add a protocol on a port and open it"
+	echo "                                  $protocols"
+	echo "  remove {<name>|--all}         vpn: revoke a client"
+	echo "  remove <protocol>             proxy: remove a protocol and close its port"
+	echo
+	section "Server:"
+	echo "  firewall setup|status         Configure or show the firewall"
+	echo "  version                       Print the agent version"
+	echo "  help                          This text"
+	echo
+	echo "Provisioning is install.sh — re-run it to reconfigure."
+}
+
+cmd_svc_help() {
+	echo "Usage: sdx $1 <action> [options]"
+	echo
+	_svc_help "$1" | awk -F'\t' '{ printf "  %-29s %s\n", $1, ($3 != "" ? $3 : $2) }'
+}
+
+SVC=""
+case "${1:-}" in
+vpn | proxy)
+	SVC="$1"
+	shift
+	;;
+esac
+
+case "${1:-}" in
+firewall)
+	_no_svc firewall
+	shift
+	cmd_firewall "$@"
+	;;
+version | --version | -V)
+	_no_svc version
+	printf '%s %s\n' "${0##*/}" "$SEEDEX_VERSION"
+	;;
+help | -h | --help)
+	if [ -n "$SVC" ]; then
+		cmd_svc_help "$SVC"
+	else
+		cmd_help
+	fi
+	;;
+"")
+	if [ -n "$SVC" ]; then
+		_svc "$SVC" status
+	else
+		cmd_status
+	fi
+	;;
+*)
+	ACTION="$1"
+	shift
+	if [ -n "$SVC" ]; then
+		_svc_has "$SVC" "$ACTION" || {
+			printf '%s has no action %s\n\n' "$SVC" "$ACTION" >&2
+			cmd_svc_help "$SVC" >&2
+			exit 2
+		}
+		_svc "$SVC" "$ACTION" "$@"
+	else
+		_fan_out "$ACTION" "$@"
+	fi
+	;;
+esac

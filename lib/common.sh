@@ -1,0 +1,198 @@
+#!/bin/bash
+
+[ -n "${SEEDEX_COMMON_SH:-}" ] && return 0
+SEEDEX_COMMON_SH=1
+
+SEEDEX_VERSION="$(cat "${SEEDEX_LIB:-/usr/local/lib/seedex}/version" 2>/dev/null || echo unknown)"
+readonly SEEDEX_VERSION
+
+readonly SEEDEX_PORTS_BASE="22/tcp:SSH"
+readonly SEEDEX_PORTS_VPN="51821/udp:AmneziaWG"
+
+die() {
+	printf '%s: %s\n' "${0##*/}" "$*" >&2
+	exit 1
+}
+
+warn() {
+	printf '%s: %s\n' "${0##*/}" "$*" >&2
+}
+
+usage() {
+	printf 'usage: %s\n' "$*" >&2
+	exit 2
+}
+
+need_root() {
+	[ "$(id -u)" -eq 0 ] || die "must be run as root"
+}
+
+need_cmd() {
+	command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+section() {
+	printf '%s\n' "$1"
+}
+
+field() {
+	printf '  %-15s %s\n' "$1" "$2"
+}
+
+mark() {
+	[ "$1" = 1 ] && printf '[*]' || printf '[ ]'
+}
+
+status_header() {
+	printf '%s %s:\n' "$(mark "$([ "$2" = 1 ] && echo 1 || echo 0)")" "$1"
+}
+
+log_summary() {
+	[ -f "$1" ] && printf '%s (%s)\n' "$1" "$(du -h "$1" | cut -f1)" || printf '%s (empty)\n' "$1"
+}
+
+indent() {
+	sed 's/^/  /'
+}
+
+log_event() {
+	local file="$1"
+	shift
+	mkdir -p "$(dirname "$file")"
+	printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >>"$file"
+}
+
+logs_tail() {
+	local file="$1"
+	shift
+	[ -f "$file" ] || die "no log file at $file"
+
+	local lines=50 follow=false
+	while [ $# -gt 0 ]; do
+		case "$1" in
+		-f | --follow) follow=true ;;
+		-n | --lines)
+			[ $# -ge 2 ] || usage "$(basename "$0") logs [-f] [-n N]"
+			lines="$2"
+			shift
+			;;
+		-n*) lines="${1#-n}" ;;
+		*) die "unknown option: $1" ;;
+		esac
+		shift
+	done
+
+	if $follow; then
+		tail -n "$lines" -f "$file"
+	else
+		tail -n "$lines" "$file"
+	fi
+}
+
+logrotate_install() {
+	local name="$1" file="$2"
+	cat >"/etc/logrotate.d/$name" <<EOF
+$file {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}
+EOF
+}
+
+_SEEDEX_IP=""
+SEEDEX_BACKUP_KEEP="${SEEDEX_BACKUP_KEEP:-3}"
+
+backup_file() {
+	local src="$1" keep="$SEEDEX_BACKUP_KEEP" dst stale
+	[ -f "$src" ] || return 0
+
+	dst="${src}.bak.$(date +%s)"
+	cp "$src" "$dst" || return 1
+	chmod 600 "$dst"
+
+	stale=$(for f in "${src}".bak.*; do [ -f "$f" ] && printf '%s\n' "$f"; done | sort -r | tail -n +$((keep + 1)))
+	[ -n "$stale" ] || return 0
+	printf '%s\n' "$stale" | while IFS= read -r f; do
+		[ -n "$f" ] && rm -f "$f"
+	done
+	return 0
+}
+
+_rand_between() {
+	local min="$1" max="$2"
+	local span=$((max - min + 1))
+	[ "$span" -gt 0 ] || die "_rand_between: empty range ${min}..${max}"
+	[ "$span" -le 4294967296 ] || die "_rand_between: range ${min}..${max} exceeds 32 bits"
+
+	local limit=$((4294967296 / span * span)) v
+	while :; do
+		v=$(od -An -N4 -tu4 </dev/urandom | tr -d ' \n')
+		[ -n "$v" ] || die "_rand_between: cannot read /dev/urandom"
+		[ "$v" -lt "$limit" ] && break
+	done
+	echo $((v % span + min))
+}
+
+get_ip() {
+	[ -n "$_SEEDEX_IP" ] || {
+		local url reply
+		for url in https://ifconfig.me https://icanhazip.com; do
+			reply=$(curl -fsS -4 --max-time 3 "$url" 2>/dev/null) || continue
+			reply=$(printf '%s' "$reply" | tr -d '[:space:]')
+			case "$reply" in
+			"" | *[!0-9.]*) continue ;;
+			esac
+			_SEEDEX_IP="$reply"
+			break
+		done
+		[ -n "$_SEEDEX_IP" ] || _SEEDEX_IP="<SERVER_IP>"
+	}
+	printf '%s\n' "$_SEEDEX_IP"
+}
+
+server_name() {
+	local h
+	h=$(hostname -s 2>/dev/null || hostname 2>/dev/null)
+	h=${h%%.*}
+	[ -n "$h" ] && [ "$h" != localhost ] || h=server
+	printf '%s\n' "$h" | tr -c 'A-Za-z0-9-\n' '-'
+}
+
+config_basename() {
+	printf '%s-%s\n' "$(server_name)" "$1"
+}
+
+firewall_ensure() {
+	command -v ufw >/dev/null 2>&1 && return 0
+	apt-get update -qq
+	apt-get install -y -qq ufw || die "cannot install ufw"
+}
+
+firewall_allow() {
+	firewall_ensure
+	ufw allow "${1%%:*}" comment "${1#*:}" >/dev/null
+}
+
+firewall_delete() {
+	command -v ufw >/dev/null 2>&1 || return 0
+	ufw --force delete allow "${1%%:*}" >/dev/null 2>&1 || true
+}
+
+firewall_route_allow() {
+	firewall_ensure
+	ufw route allow in on "$1" comment "$2" >/dev/null
+}
+
+firewall_apply() {
+	firewall_ensure
+	local spec
+	for spec in "$@"; do
+		firewall_allow "$spec"
+	done
+	ufw --force enable >/dev/null
+}
