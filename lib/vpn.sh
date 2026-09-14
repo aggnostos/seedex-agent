@@ -1,6 +1,6 @@
 # shellcheck shell=bash
 
-SVC_ACTIONS="start stop restart config export logs rotate add remove"
+SVC_ACTIONS="start stop restart config export rotate add remove"
 
 AWG_DIR="/etc/amnezia/amneziawg"
 AWG_CONFIG="$AWG_DIR/awg0.conf"
@@ -487,7 +487,6 @@ svc_status() {
 		n=$((n + 1))
 	done
 	[ "$n" -gt 0 ] || field "Clients:" "none"
-	field "Logs:" "$(log_summary "$LOG_FILE")"
 }
 
 svc_config() {
@@ -535,10 +534,6 @@ svc_config() {
 	if [ "$found" -eq 0 ]; then
 		printf '  %s\n' "no clients"
 	fi
-}
-
-svc_logs() {
-	logs_tail "$LOG_FILE" "$@"
 }
 
 svc_add_client() {
@@ -822,7 +817,6 @@ stop	Stop the service
 restart	Restart the service
 config	Show connection credentials
 export [name] [-o DIR]	Export client configs	Export client configs, one or all, to DIR
-logs [-f] [-n N]	Show logs
 rotate	Regenerate credentials	Regenerate keys and params (breaks all clients)
 add [<name>]	Add a client
 remove {<name>|--all}	Revoke a client
@@ -840,7 +834,6 @@ svc_dispatch() {
 	status) svc_status ;;
 	config) svc_config ;;
 	export) svc_export "$@" ;;
-	logs) svc_logs "$@" ;;
 	rotate) svc_rotate ;;
 	add) svc_add_client "$@" ;;
 	remove) svc_remove_client "$@" ;;

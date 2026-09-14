@@ -47,10 +47,6 @@ status_header() {
 	printf '%s %s:\n' "$(mark "$([ "$2" = 1 ] && echo 1 || echo 0)")" "$1"
 }
 
-log_summary() {
-	[ -f "$1" ] && printf '%s (%s)\n' "$1" "$(du -h "$1" | cut -f1)" || printf '%s (empty)\n' "$1"
-}
-
 indent() {
 	sed 's/^/  /'
 }
@@ -60,33 +56,6 @@ log_event() {
 	shift
 	mkdir -p "$(dirname "$file")"
 	printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >>"$file"
-}
-
-logs_tail() {
-	local file="$1"
-	shift
-	[ -f "$file" ] || die "no log file at $file"
-
-	local lines=50 follow=false
-	while [ $# -gt 0 ]; do
-		case "$1" in
-		-f | --follow) follow=true ;;
-		-n | --lines)
-			[ $# -ge 2 ] || usage "$(basename "$0") logs [-f] [-n N]"
-			lines="$2"
-			shift
-			;;
-		-n*) lines="${1#-n}" ;;
-		*) die "unknown option: $1" ;;
-		esac
-		shift
-	done
-
-	if $follow; then
-		tail -n "$lines" -f "$file"
-	else
-		tail -n "$lines" "$file"
-	fi
 }
 
 logrotate_install() {

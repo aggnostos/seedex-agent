@@ -1,6 +1,6 @@
 # shellcheck shell=bash
 
-SVC_ACTIONS="start stop restart config export logs rotate add remove"
+SVC_ACTIONS="start stop restart config export rotate add remove"
 
 SING_BOX_VERSION="1.14.0"
 SING_BOX_SHA256_amd64="2375de6999f4f56ab46b4fc5ddf26a6aba1d3e61a0f4e7ddec2f4690457d5f63"
@@ -672,7 +672,7 @@ svc_status() {
 	systemctl is-active --quiet "$SERVICE" && up=1
 	status_header "Proxy" "$up"
 	if [ -f "$CONFIG_FILE" ] && [ -x "$BINARY" ] && ! $BINARY check -c "$CONFIG_FILE" &>/dev/null; then
-		field "Config:" "INVALID — see: sdx proxy logs"
+		field "Config:" "INVALID — see: /var/log/seedex-proxy/sing-box.log"
 	fi
 	local p n=0
 	for p in $(_proto_list); do
@@ -681,11 +681,6 @@ svc_status() {
 		n=$((n + 1))
 	done
 	[ "$n" -gt 0 ] || field "Protocols:" "none — add one with: sdx proxy add <protocol> <port>"
-	field "Logs:" "$(log_summary "$LOG_FILE")"
-}
-
-svc_logs() {
-	logs_tail "$LOG_FILE" "$@"
 }
 
 svc_help() {
@@ -697,7 +692,6 @@ config	Show connection credentials
 add <protocol> <port>	Add a protocol	Add a protocol on a port and open it: $PROXY_PROTOCOLS
 remove <protocol>	Remove a protocol	Remove a protocol and close its port
 export [protocol] [-o DIR]	Export client configs	Export client configs, one protocol or all, to DIR
-logs [-f] [-n N]	Show logs
 rotate [protocol]	Regenerate credentials	Regenerate credentials of one protocol or all, keeping ports
 EOF
 }
@@ -715,7 +709,6 @@ svc_dispatch() {
 	add) svc_add "$@" ;;
 	remove) svc_remove "$@" ;;
 	export) svc_export "$@" ;;
-	logs) svc_logs "$@" ;;
 	rotate) svc_rotate "$@" ;;
 	*) return 127 ;;
 	esac
