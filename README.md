@@ -25,8 +25,9 @@ without touching the port.
 **Link.** A small HTTPS API the router pairs with once and then pulls its
 configs from on its own — a new client, a rotated credential or a new protocol
 reaches the router without copying files, and the router picks which of the
-configs it wants. Each router gets its own token; the certificate is pinned at
-pairing.
+configs it wants. The router can also drive `sdx` here — add a client, add a
+protocol — without logging in. Each router gets its own token; the
+certificate is pinned at pairing.
 
 All three come with the firewall, systemd units and log rotation taken care of.
 
