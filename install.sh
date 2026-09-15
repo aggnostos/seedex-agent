@@ -50,6 +50,7 @@ provision() {
 
 echo
 if [ "$SVC" = files ]; then
+	[ -x /usr/local/bin/seedex-link ] || provision link
 	for svc in vpn proxy link; do
 		(
 			# shellcheck source=lib/common.sh
