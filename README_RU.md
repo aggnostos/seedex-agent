@@ -1,93 +1,71 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/logo-dark.svg">
-    <img src=".github/assets/logo-light.svg" alt="Seedex" width="320">
+    <img src=".github/assets/logo-light.svg" alt="Seedex logo" width="320">
   </picture>
 </p>
 
 <p align="center"><a href="README.md">English</a> | Русский</p>
 
-Seedex Agent превращает обычный сервер на Ubuntu в дальний конец туннеля
-Seedex: одна команда его настраивает, ещё одна выдаёт клиентский конфиг,
-который роутер импортирует как есть.
+# Seedex Agent
 
-## Модули
+Seedex Agent — серверная сторона [Seedex](https://github.com/aggnostos/seedex-openwrt). Одна команда разворачивает на сервере с Ubuntu всё, к чему подключается роутер: AmneziaWG, sing-box и Link API, из которого роутер забирает конфигурации.
 
-**VPN.** Сервер AmneziaWG с параметрами обфускации, сгенерированными для этой
-установки, — на проводе никакие два сервера не выглядят одинаково. Клиенты
-добавляются и отзываются командой; работающий интерфейс подхватывает
-изменение сразу.
+## Требования
 
-**Proxy.** Сервер sing-box с любым из протоколов, которые он умеет, — VLESS
-Reality, Trojan, Shadowsocks, ShadowTLS, VMess, Hysteria2, TUIC, AnyTLS — каждый
-на выбранном порту, с учётными данными, сгенерированными для каждого протокола
-и ротируемыми без смены порта.
-
-**Link.** Небольшой HTTPS API, с которым роутер соединяется один раз и дальше
-сам забирает конфиги: новый клиент, ротированные учётные данные или новый
-протокол доходят до роутера без копирования файлов, а роутер сам выбирает,
-какие конфиги ему нужны. Роутер может и управлять здешним `sdx` — добавить
-клиента, добавить протокол — не заходя на сервер. У каждого роутера свой
-токен; сертификат закрепляется при соединении.
-
-Все три модуля идут вместе с фаерволом, юнитами systemd и ротацией логов.
-
-## Как это выглядит
-
-```
-$ sdx
-[*] VPN:
-  Interface:      awg0
-  Port:           51821/udp
-  Clients:
-    laptop
-    phone
-    router
-
-[*] Proxy:
-  Protocols:
-    anytls         8445/tcp
-    hysteria2      8444/udp
-    shadowtls      8443/tcp
-    vless          443/tcp
-
-[*] Link:
-  Port:           8447/tcp
-  Fingerprint:    sha256//k3Xr…
-  Routers:
-    router
-```
+- Сервер на Ubuntu 24.04 с публичным IP-адресом и правами root.
+- Роутер на [seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) для соединения. Любой клиент AmneziaWG или sing-box работает с экспортированными конфигами.
 
 ## Установка
 
-Нужен сервер на Ubuntu 24.04 с публичным IP и правами root.
+### 1. Установите агент
+
+На сервере запустите установщик от root:
 
 ```sh
-git clone https://github.com/aggnostos/seedex-agent.git
-cd seedex-agent
-make install
+wget -O - https://github.com/aggnostos/seedex-agent/releases/latest/download/install.sh | bash
 ```
 
-Скрипт ставит команду `sdx`, AmneziaWG, закреплённую версию sing-box и API
-link, генерирует ключи сервера, открывает порты и включает сервисы. Ничего не
-запускается, пока вы не скажете:
+Установщик скачивает последний релиз и ставит команду `sdx`, AmneziaWG, закреплённую версию sing-box и API link. Он генерирует ключи сервера, открывает порты и включает сервисы. Чтобы обновиться позже, запустите ту же команду ещё раз.
+
+### 2. Запустите сервисы
 
 ```sh
 sdx start
+```
+
+### 3. Добавьте прокси-протокол
+
+Добавьте прокси-протокол. Например, VLESS Reality на порту 443:
+
+```sh
 sdx proxy add vless 443
+```
+
+Протоколы: `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic` и `anytls`. VPN-клиент создаётся при установке. `sdx vpn add <name>` добавляет ещё.
+
+### 4. Добавьте роутер
+
+```sh
 sdx link add router
 ```
 
-Последняя команда печатает токен, отпечаток сертификата и одну строку для
-роутера; после неё роутер сам держит конфиги в актуальном состоянии.
+Команда печатает токен, отпечаток сертификата и одну строку для роутера. Дальше роутер забирает конфиги сам.
 
-## Роутер
+### 5. Проверьте статус
 
-[seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) соединяется с
-API link или принимает родные клиентские конфиги AmneziaWG и sing-box,
-которые пишет `sdx export`; телефоны и ноутбуки берут те же файлы в своих
-обычных приложениях.
+```sh
+sdx
+```
 
+## Что дальше
+
+- [Начало работы](https://docs.seedex.net/ru/getting-started) проводит через полную настройку, включая роутер.
+- [Руководство по seedex-agent](https://docs.seedex.net/ru/user-guide/seedex-agent) описывает каждую команду `sdx` на сервере.
+- [Для разработчиков](https://docs.seedex.net/ru/developer-guide/seedex-agent) рассказывает о сборке, линте и структуре проекта.
+## Участие
+
+Сообщения об ошибках, предложения и pull request'ы приветствуются.
 ## Лицензия
 
 AGPL-3.0.

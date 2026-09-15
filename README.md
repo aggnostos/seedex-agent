@@ -1,91 +1,72 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/logo-dark.svg">
-    <img src=".github/assets/logo-light.svg" alt="Seedex" width="320">
+    <img src=".github/assets/logo-light.svg" alt="Seedex logo" width="320">
   </picture>
 </p>
 
 <p align="center">English | <a href="README_RU.md">Русский</a></p>
 
-Seedex Agent turns a plain Ubuntu server into the far end of a Seedex tunnel:
-one command sets it up, one more issues a client config the router imports
-as it is.
+# Seedex Agent
 
-## Modules
+Seedex Agent is the server side of [Seedex](https://github.com/aggnostos/seedex-openwrt). One command turns an Ubuntu server into a VPN and Proxy server: AmneziaWG, sing-box and Link API that the router pulls its configs from.
 
-**VPN.** An AmneziaWG server with obfuscation parameters generated for this
-installation, so no two servers look alike on the wire. Clients are added and
-revoked with a command; the running interface picks the change up at once.
+## Requirements
 
-**Proxy.** A sing-box server with any of the protocols it speaks — VLESS
-Reality, Trojan, Shadowsocks, ShadowTLS, VMess, Hysteria2, TUIC, AnyTLS — each
-on a port of your choice, with credentials generated per protocol and rotated
-without touching the port.
+- A server running Ubuntu 24.04 with a public IP address and root access.
+- A router running [seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) to pair with. Any AmneziaWG or sing-box client works with the exported configs.
 
-**Link.** A small HTTPS API the router pairs with once and then pulls its
-configs from on its own — a new client, a rotated credential or a new protocol
-reaches the router without copying files, and the router picks which of the
-configs it wants. The router can also drive `sdx` here — add a client, add a
-protocol — without logging in. Each router gets its own token; the
-certificate is pinned at pairing.
+## Installation
 
-All three come with the firewall, systemd units and log rotation taken care of.
+### 1. Install the agent
 
-## What it looks like
-
-```
-$ sdx
-[*] VPN:
-  Interface:      awg0
-  Port:           51821/udp
-  Clients:
-    laptop
-    phone
-    router
-
-[*] Proxy:
-  Protocols:
-    anytls         8445/tcp
-    hysteria2      8444/udp
-    shadowtls      8443/tcp
-    vless          443/tcp
-
-[*] Link:
-  Port:           8447/tcp
-  Fingerprint:    sha256//k3Xr…
-  Routers:
-    router
-```
-
-## Install
-
-You need a server running Ubuntu 24.04 with a public IP and root access.
+On the server, run the installer as root:
 
 ```sh
-git clone https://github.com/aggnostos/seedex-agent.git
-cd seedex-agent
-make install
+wget -O - https://github.com/aggnostos/seedex-agent/releases/latest/download/install.sh | bash
 ```
 
-This installs the `sdx` command, AmneziaWG, a pinned sing-box release and the
-link API, generates the server keys, opens the ports and enables the
-services. Nothing is started until you say so:
+The installer downloads the latest release and installs the `sdx` command, AmneziaWG, a pinned sing-box release, and the link API. It generates the server keys, opens the ports, and enables the services. To update later, run the same command again.
+
+### 2. Start the services
 
 ```sh
 sdx start
+```
+
+### 3. Add a proxy protocol
+
+Add a proxy protocol. For example, VLESS Reality on port 443:
+
+```sh
 sdx proxy add vless 443
+```
+
+The protocols are `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic`, and `anytls`. A VPN client is created during installation. `sdx vpn add <name>` adds more.
+
+### 4. Pair the router
+
+```sh
 sdx link add router
 ```
 
-The last command prints the token, the certificate fingerprint and the one
-line to run on the router; from then on the router keeps its configs in sync
-by itself.
+The command prints the token, the certificate fingerprint, and one line to run on the router. From then on, the router pulls its configs by itself.
 
-## Router
+### 5. Check the status
 
-[seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) pairs with the
-link API, or takes the native AmneziaWG and sing-box client configs written by
-`sdx export`; phones and laptops take those with their usual apps.
+```sh
+sdx
+```
+
+
+## Where to go next
+
+- [Getting started](https://docs.seedex.net/getting-started) walks you through the full setup, router included.
+- [seedex-agent user guide](https://docs.seedex.net/user-guide/seedex-agent) describes every `sdx` command on the server.
+- [Developer guide](https://docs.seedex.net/developer-guide/seedex-agent) covers building, linting, and the project structure.
+## Contributing
+
+Bug reports, suggestions, and pull requests are welcome. Open an issue or a pull request.
 
 ## License
 
