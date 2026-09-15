@@ -14,6 +14,31 @@ die() {
 
 [ "$(id -u)" -eq 0 ] || die "must be run as root"
 
+RELEASES="https://github.com/aggnostos/seedex-agent/releases"
+
+fetch_release() {
+	local base tmp
+	if [ -n "${SEEDEX_VERSION:-}" ]; then
+		base="$RELEASES/download/v${SEEDEX_VERSION}"
+	else
+		base="$RELEASES/latest/download"
+	fi
+	command -v wget >/dev/null 2>&1 || die "wget is required to download seedex-agent"
+	tmp=$(mktemp -d)
+	log "downloading seedex-agent${SEEDEX_VERSION:+ v$SEEDEX_VERSION}"
+	if ! wget -q -O "$tmp/seedex-agent.tar.gz" "$base/seedex-agent.tar.gz" ||
+		! wget -q -O "$tmp/checksums.txt" "$base/checksums.txt"; then
+		die "cannot download seedex-agent from $base"
+	fi
+	(cd "$tmp" && grep ' seedex-agent.tar.gz$' checksums.txt | sha256sum -c --status) ||
+		die "seedex-agent.tar.gz does not match the published checksum"
+	tar -xzf "$tmp/seedex-agent.tar.gz" -C "$tmp"
+	SRC="$tmp"
+	echo "  $(cat "$SRC/version")"
+}
+
+[ -f "$SRC/sdx" ] && [ -d "$SRC/lib" ] || fetch_release
+
 export SEEDEX_BUILD_DIR="$SRC/build"
 
 SVC="${1:-}"

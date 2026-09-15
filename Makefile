@@ -7,7 +7,9 @@ LDFLAGS = -s -w -X main.version=$(VERSION)
 build:
 	cd link && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="$(LDFLAGS)" -o ../build/seedex-link_linux_amd64 .
 	cd link && CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="$(LDFLAGS)" -o ../build/seedex-link_linux_arm64 .
-	cd build && sha256sum seedex-link_linux_* > checksums.txt
+	COPYFILE_DISABLE=1 tar -czf build/seedex-agent.tar.gz sdx version install.sh lib
+	cp install.sh build/install.sh
+	cd build && sha256sum seedex-link_linux_* seedex-agent.tar.gz > checksums.txt
 
 install:
 	bash install.sh
