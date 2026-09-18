@@ -698,6 +698,10 @@ EOF
 
 svc_start() {
 	need_root
+	if [ -z "$(_proto_list)" ]; then
+		echo "no protocols configured — add one with: sdx proxy add <protocol> <port>"
+		return
+	fi
 	if systemctl is-active --quiet "$SERVICE"; then
 		echo "Already running"
 		return
@@ -718,6 +722,10 @@ svc_stop() {
 
 svc_restart() {
 	need_root
+	if [ -z "$(_proto_list)" ]; then
+		echo "no protocols configured — add one with: sdx proxy add <protocol> <port>"
+		return
+	fi
 	systemctl restart "$SERVICE"
 	echo "Restarted"
 }
