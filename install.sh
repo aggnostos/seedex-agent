@@ -47,13 +47,14 @@ case "$SVC" in
 *) die "unknown target: $SVC (vpn, proxy, link, or files to skip provisioning)" ;;
 esac
 
-for f in sdx version lib/common.sh lib/vpn.sh lib/proxy.sh lib/link.sh; do
+for f in sdx version lib/common.sh lib/wireguard.sh lib/vpn.sh lib/vpn/awg.sh lib/vpn/wg.sh lib/proxy.sh lib/link.sh; do
 	[ -f "$SRC/$f" ] || die "$f not found next to install.sh"
 done
 
 log "installing files"
 install -d -m 0755 "$LIBDIR"
-for f in common.sh vpn.sh proxy.sh link.sh; do
+install -d -m 0755 "$LIBDIR/vpn"
+for f in common.sh wireguard.sh vpn.sh vpn/awg.sh vpn/wg.sh proxy.sh link.sh; do
 	install -m 0644 "$SRC/lib/$f" "$LIBDIR/$f"
 	echo "  $LIBDIR/$f"
 done
@@ -109,6 +110,7 @@ when convenient:
 Then:
 
   sdx                                 # status
+  sdx vpn add awg router              # a VPN client (awg or wg)
+  sdx proxy add vless 443             # a proxy protocol on a port
   sdx link add router                 # pair a router: prints the command to run on it
-  sdx export -o <dir>                 # or hand the native configs over yourself
 EOF

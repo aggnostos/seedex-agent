@@ -103,7 +103,10 @@ cmd_firewall() {
 	case "${1:-status}" in
 	setup)
 		# shellcheck disable=SC2086,SC2046,SC1090
-		firewall_apply $SEEDEX_PORTS_BASE $SEEDEX_PORTS_VPN $(
+		firewall_apply $SEEDEX_PORTS_BASE $(
+			. "$(_lib vpn)"
+			_vpn_port_specs
+		) $(
 			. "$(_lib proxy)"
 			_proto_port_specs
 		) "${SEEDEX_LINK_PORT:-8447}/tcp:seedex-link"
@@ -129,15 +132,16 @@ cmd_help() {
 	section "Service:"
 	echo "  start | stop | restart        Control the service"
 	echo "  config                        Show connection credentials"
-	echo "  rotate [protocol]             Regenerate credentials: every vpn client, one proxy protocol or all"
-	echo "  export [name] [-o DIR|--link] Export client configs, one or all, to DIR; proxy --link prints share links"
+	echo "  rotate [protocol]             Regenerate credentials of one protocol or all"
+	echo "  export [...] [-o DIR|--link]  Export client configs to DIR; proxy --link prints share links"
 	echo
 	section "Entries (clients in vpn, protocols in proxy, routers in link):"
-	echo "  add [<name>]                  vpn: add a client"
+	echo "  add <protocol> [<name>]       vpn: add a client (awg, wg)"
 	echo "  add <protocol> <port>         proxy: add a protocol on a port and open it"
 	echo "                                  $protocols"
 	echo "  add <router>                  link: issue a token for a router and print its command"
-	echo "  remove {<name>|--all}         vpn: revoke a client"
+	echo "  remove <protocol> {<name>|--all}"
+	echo "                                vpn: revoke a client"
 	echo "  remove <protocol>             proxy: remove a protocol and close its port"
 	echo "  remove <router>               link: unpair a router"
 	echo

@@ -42,7 +42,7 @@ sdx start
 sdx proxy add vless 443
 ```
 
-Протоколы: `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic` и `anytls`. VPN-клиент создаётся при установке. `sdx vpn add <name>` добавляет ещё.
+Протоколы: `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic` и `anytls`. VPN-клиенты добавляются командой `sdx vpn add awg <name>` (AmneziaWG) или `sdx vpn add wg <name>` (WireGuard).
 
 ### 4. Добавьте роутер
 

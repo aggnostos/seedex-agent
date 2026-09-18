@@ -42,7 +42,7 @@ Add a proxy protocol. For example, VLESS Reality on port 443:
 sdx proxy add vless 443
 ```
 
-The protocols are `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic`, and `anytls`. A VPN client is created during installation. `sdx vpn add <name>` adds more.
+The protocols are `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic`, and `anytls`. VPN clients are added with `sdx vpn add awg <name>` (AmneziaWG) or `sdx vpn add wg <name>` (WireGuard).
 
 ### 4. Pair the router
 

@@ -31,8 +31,8 @@ bump:
 	fi
 
 lint:
-	shfmt -l -d sdx install.sh lib/*.sh
-	shellcheck -x sdx install.sh lib/*.sh
+	shfmt -l -d sdx install.sh lib/*.sh lib/vpn/*.sh
+	shellcheck -x sdx install.sh lib/*.sh lib/vpn/*.sh
 	test -z "$$(gofmt -l link)" || { gofmt -l link; exit 1; }
 	cd link && go vet ./...
 

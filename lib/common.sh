@@ -7,7 +7,6 @@ SEEDEX_VERSION="$(cat "${SEEDEX_LIB:-/usr/local/lib/seedex}/version" 2>/dev/null
 readonly SEEDEX_VERSION
 
 readonly SEEDEX_PORTS_BASE="22/tcp:SSH"
-readonly SEEDEX_PORTS_VPN="51821/udp:AmneziaWG"
 
 die() {
 	printf '%s: %s\n' "${0##*/}" "$*" >&2

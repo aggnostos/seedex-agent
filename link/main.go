@@ -120,7 +120,7 @@ func (s *server) export(router string) (*payload, error) {
 	vpnDir := filepath.Join(tmp, "vpn")
 	proxyDir := filepath.Join(tmp, "proxy")
 	if out, err := exec.Command(s.sdx, "vpn", "export", "-o", vpnDir).CombinedOutput(); err != nil {
-		if !strings.Contains(string(out), "no clients") {
+		if !strings.Contains(string(out), "no clients") && !strings.Contains(string(out), "no protocols configured") {
 			return nil, fmt.Errorf("vpn export: %s", strings.TrimSpace(string(out)))
 		}
 	}
