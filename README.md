@@ -57,19 +57,14 @@ The command prints the token, the certificate fingerprint, and one line to run o
 ```
 $ sdx
 
-[*] VPN:
+[ ] VPN:
   Interface:      awg0
   Port:           51821/udp
   Clients:
-    aggmbp
-    aggphone
-    router
+    none
 
 [*] Proxy:
   Protocols:
-    anytls         8445/tcp
-    hysteria2      8444/udp
-    shadowtls      8443/tcp
     vless          443/tcp
 
 [*] Link:
@@ -78,7 +73,6 @@ $ sdx
   Routers:
     router
 ```
-
 
 ## Where to go next
 

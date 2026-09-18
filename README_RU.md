@@ -9,12 +9,12 @@
 
 # Seedex Agent
 
-Seedex Agent – одна команда разворачивает на сервере с Ubuntu всё, к чему подключается роутер с [Seedex](https://github.com/aggnostos/seedex-openwrt): AmneziaWG, sing-box и Link API, из которого роутер забирает конфигурации. Клиентские конфиги — нативные файлы AmneziaWG и sing-box, поэтому тот же сервер можно использовать с обычными приложениями на любом устройстве.
+Seedex Agent – одна команда разворачивает на сервере с Ubuntu всё, к чему подключается роутер с [Seedex](https://github.com/aggnostos/seedex-openwrt): WireGuard, AmneziaWG, sing-box и Link API, из которого роутер забирает конфигурации. Клиентские конфиги — нативные файлы AmneziaWG и sing-box, поэтому тот же сервер можно использовать с обычными приложениями на любом устройстве.
 
 ## Требования
 
 - Сервер на Ubuntu 24.04 с публичным IP-адресом и правами root.
-- Роутер на [seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) для соединения или любое устройство с приложением AmneziaWG или sing-box.
+- Роутер на [seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) для соединения или любое устройство с приложением WireGuard, AmneziaWG или sing-box.
 
 ## Установка
 
@@ -57,19 +57,14 @@ sdx link add router
 ```
 $ sdx
 
-[*] VPN:
+[ ] VPN:
   Interface:      awg0
   Port:           51821/udp
   Clients:
-    aggmbp
-    aggphone
-    router
+    none
 
 [*] Proxy:
   Protocols:
-    anytls         8445/tcp
-    hysteria2      8444/udp
-    shadowtls      8443/tcp
     vless          443/tcp
 
 [*] Link:
