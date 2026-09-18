@@ -411,6 +411,53 @@ _render_client_config() {
 		}'
 }
 
+_uri_enc() { jq -rn --arg s "$1" '$s | @uri'; }
+
+_render_link() {
+	local protocol="$1" f tag sni
+	_need_server_ip
+	f=$(_proto_file "$protocol")
+	tag=$(_uri_enc "$(config_basename "$protocol")")
+	! _proto_needs_cert "$protocol" || sni=$(_cert_sni)
+	case "$protocol" in
+	vless)
+		printf 'vless://%s@%s:%s?security=reality&encryption=none&pbk=%s&sid=%s&sni=%s&fp=chrome&flow=xtls-rprx-vision&type=tcp#%s\n' \
+			"$(jq -r .uuid "$f")" "$SERVER_IP" "$(jq -r .port "$f")" \
+			"$(_uri_enc "$(jq -r .public_key "$f")")" "$(jq -r .short_id "$f")" "$(jq -r .sni "$f")" "$tag"
+		;;
+	shadowsocks)
+		printf 'ss://%s@%s:%s#%s\n' \
+			"$(jq -r '"\(.method):\(.password)"' "$f" | tr -d '\n' | base64 -w0 | tr '+/' '-_' | tr -d '=')" \
+			"$SERVER_IP" "$(jq -r .port "$f")" "$tag"
+		;;
+	trojan)
+		printf 'trojan://%s@%s:%s?security=tls&sni=%s&allowInsecure=1&type=tcp#%s\n' \
+			"$(_uri_enc "$(jq -r .password "$f")")" "$SERVER_IP" "$(jq -r .port "$f")" "$sni" "$tag"
+		;;
+	vmess)
+		printf 'vmess://%s\n' "$(jq -c --arg ip "$SERVER_IP" --arg sni "$sni" --arg ps "$(config_basename "$protocol")" \
+			'{v: "2", ps: $ps, add: $ip, port: (.port | tostring), id: .uuid, aid: "0", scy: "auto",
+			  net: "tcp", type: "none", host: "", path: "", tls: "tls", sni: $sni, allowInsecure: true}' "$f" |
+			tr -d '\n' | base64 -w0)"
+		;;
+	hysteria2)
+		printf 'hysteria2://%s@%s:%s?sni=%s&insecure=1#%s\n' \
+			"$(_uri_enc "$(jq -r .password "$f")")" "$SERVER_IP" "$(jq -r .port "$f")" "$sni" "$tag"
+		;;
+	tuic)
+		printf 'tuic://%s:%s@%s:%s?sni=%s&alpn=h3&congestion_control=bbr&udp_relay_mode=native&allow_insecure=1#%s\n' \
+			"$(jq -r .uuid "$f")" "$(_uri_enc "$(jq -r .password "$f")")" "$SERVER_IP" "$(jq -r .port "$f")" "$sni" "$tag"
+		;;
+	anytls)
+		printf 'anytls://%s@%s:%s?sni=%s&insecure=1#%s\n' \
+			"$(_uri_enc "$(jq -r .password "$f")")" "$SERVER_IP" "$(jq -r .port "$f")" "$sni" "$tag"
+		;;
+	shadowtls)
+		die "shadowtls has no share-link format — use the JSON export"
+		;;
+	esac
+}
+
 _write_client_config() {
 	local protocol="$1" dir="$2" path
 	mkdir -p "$dir"
@@ -532,19 +579,21 @@ svc_rotate() {
 }
 
 svc_export() {
-	local protocol="" dir=""
+	local protocol="" dir="" link=0
 	while [ $# -gt 0 ]; do
 		case "$1" in
 		-o | --output)
-			[ $# -ge 2 ] || usage "sdx proxy export [<protocol>] [-o DIR]"
+			[ $# -ge 2 ] || usage "sdx proxy export [<protocol>] [-o DIR | --link]"
 			dir="${2%/}"
 			shift
 			;;
-		-*) usage "sdx proxy export [<protocol>] [-o DIR]" ;;
+		--link) link=1 ;;
+		-*) usage "sdx proxy export [<protocol>] [-o DIR | --link]" ;;
 		*) protocol="$1" ;;
 		esac
 		shift
 	done
+	[ "$link" = 0 ] || [ -z "$dir" ] || usage "sdx proxy export [<protocol>] [-o DIR | --link]"
 	need_cmd jq
 	SERVER_IP=""
 
@@ -559,7 +608,13 @@ svc_export() {
 
 	local p first=1
 	for p in "$@"; do
-		if [ -n "$dir" ]; then
+		if [ "$link" = 1 ]; then
+			if [ "$p" = shadowtls ] && [ $# -gt 1 ]; then
+				warn "shadowtls skipped — it has no share-link format, use the JSON export"
+				continue
+			fi
+			_render_link "$p"
+		elif [ -n "$dir" ]; then
 			_write_client_config "$p" "$dir"
 		else
 			[ "$first" = 1 ] || echo
@@ -691,7 +746,7 @@ restart	Restart the service
 config	Show connection credentials
 add <protocol> <port>	Add a protocol	Add a protocol on a port and open it: $PROXY_PROTOCOLS
 remove <protocol>	Remove a protocol	Remove a protocol and close its port
-export [protocol] [-o DIR]	Export client configs	Export client configs, one protocol or all, to DIR
+export [protocol] [-o DIR | --link]	Export client configs	Export client configs, one protocol or all, to DIR; --link prints share links (TLS ones with insecure=1)
 rotate [protocol]	Regenerate credentials	Regenerate credentials of one protocol or all, keeping ports
 EOF
 }

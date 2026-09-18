@@ -130,7 +130,7 @@ cmd_help() {
 	echo "  start | stop | restart        Control the service"
 	echo "  config                        Show connection credentials"
 	echo "  rotate [protocol]             Regenerate credentials: every vpn client, one proxy protocol or all"
-	echo "  export [name] [-o DIR]        Export client configs, one or all, to DIR"
+	echo "  export [name] [-o DIR|--link] Export client configs, one or all, to DIR; proxy --link prints share links"
 	echo
 	section "Entries (clients in vpn, protocols in proxy, routers in link):"
 	echo "  add [<name>]                  vpn: add a client"
