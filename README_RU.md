@@ -36,10 +36,11 @@ sdx start
 
 ### 3. Добавьте прокси-протокол
 
-Добавьте прокси-протокол. Например, VLESS Reality на порту 443:
-
+Добавьте прокси-протоколы или VPN клиентов:
 ```sh
 sdx proxy add vless 443
+sdx vpn add awg router
+sdx vpn add wg router
 ```
 
 Протоколы: `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic` и `anytls`. VPN-клиенты добавляются командой `sdx vpn add awg <name>` (AmneziaWG) или `sdx vpn add wg <name>` (WireGuard).
@@ -57,11 +58,12 @@ sdx link add router
 ```
 $ sdx
 
-[ ] VPN:
-  Interface:      awg0
-  Port:           51821/udp
-  Clients:
-    none
+[*] VPN:
+  Protocols:
+    [*] awg       51821/udp
+        router
+    [*] wg       51820/udp
+        router  
 
 [*] Proxy:
   Protocols:

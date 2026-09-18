@@ -9,7 +9,7 @@
 
 # Seedex Agent
 
-Seedex Agent – one command turns an Ubuntu server into a VPN and proxy server: AmneziaWG, sing-box, and the Link API that the router with [Seedex](https://github.com/aggnostos/seedex-openwrt) pulls its configs from. The client configs are native AmneziaWG and sing-box files, so any device with the usual apps can use the same server.
+Seedex Agent – one command turns an Ubuntu server into a VPN and proxy server: WireGuard, AmneziaWG, sing-box, and the Link API that the router with [Seedex](https://github.com/aggnostos/seedex-openwrt) pulls its configs from. The client configs are native AmneziaWG and sing-box files, so any device with the usual apps can use the same server.
 
 ## Requirements
 
@@ -36,10 +36,12 @@ sdx start
 
 ### 3. Add a proxy protocol
 
-Add a proxy protocol. For example, VLESS Reality on port 443:
+Add a proxy protocols or VP clients. For example:
 
 ```sh
 sdx proxy add vless 443
+sdx vpn add awg router
+sdx vpn add wg router
 ```
 
 The protocols are `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic`, and `anytls`. VPN clients are added with `sdx vpn add awg <name>` (AmneziaWG) or `sdx vpn add wg <name>` (WireGuard).
@@ -57,11 +59,12 @@ The command prints the token, the certificate fingerprint, and one line to run o
 ```
 $ sdx
 
-[ ] VPN:
-  Interface:      awg0
-  Port:           51821/udp
-  Clients:
-    none
+[*] VPN:
+  Protocols:
+    [*] awg       51821/udp
+        router
+    [*] wg       51820/udp
+        router
 
 [*] Proxy:
   Protocols:
