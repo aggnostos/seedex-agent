@@ -1,0 +1,55 @@
+name: Bug report
+description: Something on the server doesn't work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove keys, tokens, certificate fingerprints, and public IP addresses from any output before you paste it.
+  - type: input
+    id: ubuntu
+    attributes:
+      label: Ubuntu version
+      placeholder: Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Seedex Agent version
+      description: The output of `sdx version`.
+      placeholder: seedex 0.2.0
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you did
+      description: The commands you ran, in order.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: Output of `sdx`
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Service log
+      description: "`journalctl -u seedex-vpn-awg`, `-u seedex-vpn-wg`, `-u sing-box`, or `-u seedex-link`, whichever is involved. The lines around the failure are enough."
+      render: text

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://docs.seedex.net
+    about: Getting started and every sdx command on the server.
+  - name: Router side (seedex-openwrt)
+    url: https://github.com/aggnostos/seedex-openwrt/issues
+    about: Problems with sdx on the router, routing, DNS, or the LuCI app belong there.

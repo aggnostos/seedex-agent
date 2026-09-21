@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest a change in what the server does or how `sdx` behaves.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The task, not the solution. What do you want the server to do that it doesn't?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: How it could work
+      description: The `sdx` command, the protocol, or the setting you have in mind, if any.
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do today instead
