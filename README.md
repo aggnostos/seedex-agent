@@ -9,12 +9,12 @@
 
 # Seedex Agent
 
-Seedex Agent – one command turns an Ubuntu server into a VPN and proxy server: AmneziaWG, sing-box, and the Link API that the router with [Seedex](https://github.com/aggnostos/seedex-openwrt) pulls its configs from. The client configs are native AmneziaWG and sing-box files, so any device with the usual apps can use the same server.
+Seedex Agent: one command turns an Ubuntu server into a VPN and proxy server: WireGuard, AmneziaWG, sing-box, and the Link API that a router running [Seedex](https://github.com/aggnostos/seedex-openwrt) pulls its configs from. The client configs are native WireGuard, AmneziaWG, and sing-box files, so any device with the usual apps can use the same server.
 
 ## Requirements
 
 - A server running Ubuntu 24.04 with a public IP address and root access.
-- A router running [seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) to pair with, or any device with an AmneziaWG or sing-box app.
+- A router running [seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) to pair with, or any device with a WireGuard, AmneziaWG, or sing-box app.
 
 ## Installation
 
@@ -26,7 +26,7 @@ On the server, run the installer as root:
 wget -O - https://github.com/aggnostos/seedex-agent/releases/latest/download/install.sh | bash
 ```
 
-The installer downloads the latest release and installs the `sdx` command, AmneziaWG, a pinned sing-box release, and the link API. It generates the server keys, opens the ports, and enables the services. To update later, run the same command again.
+The installer downloads the latest release and installs the `sdx` command, WireGuard, AmneziaWG, a pinned sing-box release, and the Link API. It generates the server keys, opens the ports, and enables the services. To update later, run the same command again.
 
 ### 2. Start the services
 
@@ -34,12 +34,14 @@ The installer downloads the latest release and installs the `sdx` command, Amnez
 sdx start
 ```
 
-### 3. Add a proxy protocol
+### 3. Set up tunnels
 
-Add a proxy protocol. For example, VLESS Reality on port 443:
+Add proxy protocols or VPN clients. For example:
 
 ```sh
 sdx proxy add vless 443
+sdx vpn add awg router
+sdx vpn add wg router
 ```
 
 The protocols are `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic`, and `anytls`. VPN clients are added with `sdx vpn add awg <name>` (AmneziaWG) or `sdx vpn add wg <name>` (WireGuard).
@@ -57,11 +59,12 @@ The command prints the token, the certificate fingerprint, and one line to run o
 ```
 $ sdx
 
-[ ] VPN:
-  Interface:      awg0
-  Port:           51821/udp
-  Clients:
-    none
+[*] VPN:
+  Protocols:
+    [*] awg       51821/udp
+        router
+    [*] wg        51820/udp
+        router
 
 [*] Proxy:
   Protocols:
@@ -82,7 +85,7 @@ $ sdx
 
 ## Contributing
 
-Bug reports, suggestions, and pull requests are welcome. Open an issue or a pull request.
+Bug reports, suggestions, and pull requests are welcome.
 
 ## License
 

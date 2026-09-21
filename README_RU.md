@@ -9,7 +9,7 @@
 
 # Seedex Agent
 
-Seedex Agent – одна команда разворачивает на сервере с Ubuntu всё, к чему подключается роутер с [Seedex](https://github.com/aggnostos/seedex-openwrt): WireGuard, AmneziaWG, sing-box и Link API, из которого роутер забирает конфигурации. Клиентские конфиги — нативные файлы AmneziaWG и sing-box, поэтому тот же сервер можно использовать с обычными приложениями на любом устройстве.
+Seedex Agent — одна команда разворачивает на сервере с Ubuntu всё, к чему подключается роутер с [Seedex](https://github.com/aggnostos/seedex-openwrt): WireGuard, AmneziaWG, sing-box и Link API, из которого роутер забирает конфигурации. Клиентские конфиги — нативные файлы WireGuard, AmneziaWG и sing-box, поэтому тот же сервер можно использовать с обычными приложениями на любом устройстве.
 
 ## Требования
 
@@ -26,7 +26,7 @@ Seedex Agent – одна команда разворачивает на сер�
 wget -O - https://github.com/aggnostos/seedex-agent/releases/latest/download/install.sh | bash
 ```
 
-Установщик скачивает последний релиз и ставит команду `sdx`, AmneziaWG, закреплённую версию sing-box и API link. Он генерирует ключи сервера, открывает порты и включает сервисы. Чтобы обновиться позже, запустите ту же команду ещё раз.
+Установщик скачивает последний релиз и ставит команду `sdx`, WireGuard, AmneziaWG, закреплённую версию sing-box и Link API. Он генерирует ключи сервера, открывает порты и включает сервисы. Чтобы обновиться позже, запустите ту же команду ещё раз.
 
 ### 2. Запустите сервисы
 
@@ -34,17 +34,19 @@ wget -O - https://github.com/aggnostos/seedex-agent/releases/latest/download/ins
 sdx start
 ```
 
-### 3. Добавьте прокси-протокол
+### 3. Настройте туннели
 
-Добавьте прокси-протокол. Например, VLESS Reality на порту 443:
+Добавьте прокси-протоколы или VPN-клиентов. Например:
 
 ```sh
 sdx proxy add vless 443
+sdx vpn add awg router
+sdx vpn add wg router
 ```
 
 Протоколы: `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic` и `anytls`. VPN-клиенты добавляются командой `sdx vpn add awg <name>` (AmneziaWG) или `sdx vpn add wg <name>` (WireGuard).
 
-### 4. Добавьте роутер
+### 4. Соедините роутер
 
 ```sh
 sdx link add router
@@ -57,11 +59,12 @@ sdx link add router
 ```
 $ sdx
 
-[ ] VPN:
-  Interface:      awg0
-  Port:           51821/udp
-  Clients:
-    none
+[*] VPN:
+  Protocols:
+    [*] awg       51821/udp
+        router
+    [*] wg        51820/udp
+        router
 
 [*] Proxy:
   Protocols:
@@ -82,7 +85,7 @@ $ sdx
 
 ## Участие
 
-Сообщения об ошибках, предложения и pull request'ы приветствуются.
+Сообщения об ошибках, предложения и пул-реквесты приветствуются.
 
 ## Лицензия
 
