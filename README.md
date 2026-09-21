@@ -13,7 +13,7 @@ Seedex Agent: one command turns an Ubuntu server into a VPN and proxy server: Wi
 
 ## Requirements
 
-- A server running Ubuntu 24.04 with a public IP address and root access.
+- A server running Ubuntu 24.04 or later with a public IP address and root access.
 - A router running [seedex-openwrt](https://github.com/aggnostos/seedex-openwrt) to pair with, or any device with a WireGuard, AmneziaWG, or sing-box app.
 
 ## Installation
@@ -26,15 +26,9 @@ On the server, run the installer as root:
 wget -O - https://github.com/aggnostos/seedex-agent/releases/latest/download/install.sh | bash
 ```
 
-The installer downloads the latest release and installs the `sdx` command, WireGuard, AmneziaWG, a pinned sing-box release, and the Link API. It generates the server keys, opens the ports, and enables the services. To update later, run the same command again.
+The installer downloads the latest release and installs the `sdx` command, WireGuard, AmneziaWG, a pinned sing-box release, and the Link API. It generates the server keys, opens the ports, and enables the services. Nothing is started yet. To update later, run the same command again.
 
-### 2. Start the services
-
-```sh
-sdx start
-```
-
-### 3. Set up tunnels
+### 2. Set up tunnels
 
 Add proxy protocols or VPN clients. For example:
 
@@ -45,6 +39,14 @@ sdx vpn add wg router
 ```
 
 The protocols are `vless`, `trojan`, `shadowsocks`, `shadowtls`, `vmess`, `hysteria2`, `tuic`, and `anytls`. VPN clients are added with `sdx vpn add awg <name>` (AmneziaWG) or `sdx vpn add wg <name>` (WireGuard).
+
+### 3. Start the services
+
+```sh
+sdx start
+```
+
+The services are not running until you start them. `sdx start` brings up every protocol that has a client or a port.
 
 ### 4. Pair the router
 

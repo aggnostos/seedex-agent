@@ -20,7 +20,7 @@ For a small fix, open a pull request. For a new feature or a change in behavior,
 
 ## Set up
 
-You need Go 1.22 for the build of the Link API, shfmt 3.13 and shellcheck 0.11 for the lint, and a server running Ubuntu 24.04 to try a build. The [developer guide](https://docs.seedex.net/developer-guide/seedex-agent) describes the project structure, the build, and how to install a build on a server.
+You need Go 1.22 for the build of the Link API, shfmt 3.13 and shellcheck 0.11 for the lint, and a server running Ubuntu 24.04 or later to try a build. The [developer guide](https://docs.seedex.net/developer-guide/seedex-agent) describes the project structure, the build, and how to install a build on a server.
 
 ## Code style
 
