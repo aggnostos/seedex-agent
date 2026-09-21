@@ -8,7 +8,7 @@ WG_LOG_DIR="/var/log/seedex-vpn"
 
 wg_bind() {
 	local proto="$1" action
-	for action in port packages configured provision genconfig add remove export rotate config status start stop upgrade; do
+	for action in port packages configured active provision genconfig add remove export rotate config status start stop upgrade; do
 		eval "vpn_${proto}_${action}() { wg_${action} $proto \"\$@\"; }"
 	done
 }
@@ -17,11 +17,15 @@ wg_profile() {
 	WG_PROTO="$1"
 	"vpn_${WG_PROTO}_profile"
 	WG_DIR="$WG_ROOT/$WG_PROTO"
-	WG_CONFIG="$WG_DIR/$WG_IFACE.conf"
+	WG_CONFIG="$WG_CONF_DIR/$WG_IFACE.conf"
 	WG_CLIENTS="$WG_DIR/clients"
-	WG_SERVICE="seedex-vpn-$WG_PROTO"
-	WG_SERVICE_FILE="/etc/systemd/system/$WG_SERVICE.service"
+	WG_NAME="seedex-vpn-$WG_PROTO"
+	WG_SERVICE="$WG_QUICK@$WG_IFACE"
 	WG_LOG="$WG_LOG_DIR/$WG_PROTO.log"
+}
+
+_wg_foreign() {
+	[ -f "$WG_CONFIG" ] && [ ! -f "$WG_DIR/.server_pubkey" ]
 }
 
 _wg_hook() {
@@ -47,7 +51,12 @@ wg_packages() {
 
 wg_configured() {
 	wg_profile "$1"
-	[ -f "$WG_CONFIG" ]
+	[ -f "$WG_DIR/.server_pubkey" ] && { [ -f "$WG_CONFIG" ] || [ -f "$WG_DIR/$WG_IFACE.conf" ]; }
+}
+
+wg_active() {
+	wg_profile "$1"
+	systemctl is-active --quiet "$WG_SERVICE" 2>/dev/null
 }
 
 _wg_render_config() {
@@ -68,14 +77,15 @@ wg_genconfig() {
 	wg_profile "$1"
 	need_root
 	command -v "$WG_TOOL" >/dev/null 2>&1 || die "$WG_TOOL not found — run: install.sh vpn"
+	! _wg_foreign || die "$WG_CONFIG exists and was not created by seedex — move it away or pick another interface"
 	if [ -f "$WG_CONFIG" ]; then
 		echo "$WG_TITLE is configured already — 'sdx vpn rotate $WG_PROTO' regenerates it"
 		return
 	fi
 
 	echo "Generating $WG_TITLE server config"
-	mkdir -p "$WG_DIR"
-	chmod 700 "$WG_DIR"
+	mkdir -p "$WG_DIR" "$WG_CONF_DIR"
+	chmod 700 "$WG_DIR" "$WG_CONF_DIR"
 
 	local priv pub
 	priv=$("$WG_TOOL" genkey)
@@ -93,45 +103,55 @@ wg_genconfig() {
 	_wg_hook params_print
 }
 
-_wg_install_service() {
-	local quick
-	quick=$(command -v "$WG_QUICK") || die "$WG_QUICK not found — run: install.sh vpn"
-	cat >"$WG_SERVICE_FILE" <<EOF
-[Unit]
-Description=Seedex VPN ($WG_TITLE $WG_IFACE)
-After=network-online.target nss-lookup.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=$quick up $WG_CONFIG
-ExecStop=$quick down $WG_CONFIG
-
-[Install]
-WantedBy=multi-user.target
-EOF
-	systemctl daemon-reload
+_wg_enable_service() {
+	systemctl cat "$WG_QUICK@.service" >/dev/null 2>&1 ||
+		die "$WG_QUICK@.service not found — the $WG_TITLE tools are not installed properly, run: install.sh vpn"
 	systemctl enable "$WG_SERVICE" >/dev/null 2>&1
+}
+
+_wg_migrate_layout() {
+	local old="$WG_DIR/$WG_IFACE.conf" unit="/etc/systemd/system/$WG_NAME.service" was_running=0
+	[ -f "$old" ] || [ -f "$unit" ] || return 0
+	systemctl cat "$WG_QUICK@.service" >/dev/null 2>&1 ||
+		die "$WG_QUICK@.service not found — the $WG_TITLE tools are not installed properly, run: install.sh vpn"
+	if [ -f "$unit" ]; then
+		systemctl is-active --quiet "$WG_NAME" 2>/dev/null && was_running=1
+		systemctl disable --now "$WG_NAME" >/dev/null 2>&1 || true
+		rm -f "$unit"
+		systemctl daemon-reload
+		echo "  retired $WG_NAME in favour of $WG_SERVICE"
+	fi
+	if [ -f "$old" ]; then
+		if [ -f "$WG_CONFIG" ]; then
+			backup_file "$WG_CONFIG"
+			echo "  $WG_CONFIG was not the seedex server config — backed up and replaced"
+		fi
+		mkdir -p "$WG_CONF_DIR"
+		chmod 700 "$WG_CONF_DIR"
+		mv "$old" "$WG_CONFIG"
+		echo "  moved $old to $WG_CONFIG"
+	fi
+	_wg_enable_service
+	[ "$was_running" = 0 ] || systemctl start "$WG_SERVICE"
 }
 
 wg_provision() {
 	wg_profile "$1"
 	need_root
+	_wg_migrate_layout
 	[ -f "$WG_CONFIG" ] || wg_genconfig "$WG_PROTO"
-	[ -f "$WG_SERVICE_FILE" ] || _wg_install_service
+	_wg_enable_service
 	mkdir -p "$WG_LOG_DIR"
 	vpn_host_provision
 	firewall_allow "$(wg_port "$WG_PROTO")"
-	firewall_route_allow "$WG_IFACE" "$WG_SERVICE"
-	logrotate_install "$WG_SERVICE" "$WG_LOG"
+	firewall_route_allow "$WG_IFACE" "$WG_NAME"
+	logrotate_install "$WG_NAME" "$WG_LOG"
 }
 
 wg_start() {
 	wg_profile "$1"
 	need_root
-	[ -f "$WG_CONFIG" ] || die "$WG_PROTO is not configured — add a client first: sdx vpn add $WG_PROTO <name>"
-	[ -f "$WG_SERVICE_FILE" ] || _wg_install_service
+	wg_configured "$WG_PROTO" || die "$WG_PROTO is not configured — add a client first: sdx vpn add $WG_PROTO <name>"
 	if systemctl is-active --quiet "$WG_SERVICE"; then
 		echo "$WG_PROTO: already running"
 		return
@@ -155,6 +175,7 @@ wg_stop() {
 
 wg_upgrade() {
 	wg_profile "$1"
+	_wg_migrate_layout
 	vpn_host_provision
 	_wg_hook maintain
 }
@@ -254,9 +275,8 @@ EOF
 	echo "$next" >"$WG_DIR/.next_client"
 
 	if ip link show "$WG_IFACE" &>/dev/null; then
-		local pskfile
-		pskfile=$(mktemp)
-		echo "$psk" >"$pskfile"
+		local pskfile="$WG_CONF_DIR/.psk.$$"
+		(umask 077 && echo "$psk" >"$pskfile")
 		"$WG_TOOL" set "$WG_IFACE" peer "$pub" preshared-key "$pskfile" allowed-ips "$allowed"
 		rm -f "$pskfile"
 		log_event "$WG_LOG" "Added client '$name' (hot-reload)"

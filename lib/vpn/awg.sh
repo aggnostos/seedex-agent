@@ -12,6 +12,7 @@ AWG_I1_DOMAINS="yandex.ru vk.com mail.ru ok.ru dzen.ru avito.ru ozon.ru rutube.r
 vpn_awg_profile() {
 	WG_TOOL="awg"
 	WG_QUICK="awg-quick"
+	WG_CONF_DIR="/etc/amnezia/amneziawg"
 	WG_IFACE="awg0"
 	WG_PORT="51821"
 	WG_NET="10.66.67"
@@ -88,20 +89,17 @@ I1='$i1'
 EOF
 }
 
-AWG_LEGACY_DIR="/etc/amnezia/amneziawg"
-
 vpn_awg_migrate() {
-	local dir="$WG_ROOT/awg"
-	[ -f "$AWG_LEGACY_DIR/awg0.conf" ] || return 0
+	local dir="$WG_ROOT/awg" legacy="/etc/amnezia/amneziawg"
+	[ -f "$legacy/.server_pubkey" ] || return 0
 	[ ! -d "$dir" ] || return 0
 	mkdir -p "$dir"
 	chmod 700 "$dir"
-	mv "$AWG_LEGACY_DIR/awg0.conf" "$dir/awg0.conf"
-	[ ! -f "$AWG_LEGACY_DIR/.awg_params" ] || mv "$AWG_LEGACY_DIR/.awg_params" "$dir/$AWG_PARAMS_FILE"
-	[ ! -d "$AWG_LEGACY_DIR/clients" ] || mv "$AWG_LEGACY_DIR/clients" "$dir/clients"
-	[ ! -f "$AWG_LEGACY_DIR/.next_client" ] || mv "$AWG_LEGACY_DIR/.next_client" "$dir/.next_client"
-	[ ! -f "$AWG_LEGACY_DIR/.server_pubkey" ] || mv "$AWG_LEGACY_DIR/.server_pubkey" "$dir/.server_pubkey"
-	echo "  moved the AmneziaWG server and its clients from $AWG_LEGACY_DIR to $dir"
+	[ ! -f "$legacy/.awg_params" ] || mv "$legacy/.awg_params" "$dir/$AWG_PARAMS_FILE"
+	[ ! -d "$legacy/clients" ] || mv "$legacy/clients" "$dir/clients"
+	[ ! -f "$legacy/.next_client" ] || mv "$legacy/.next_client" "$dir/.next_client"
+	mv "$legacy/.server_pubkey" "$dir/.server_pubkey"
+	echo "  moved the AmneziaWG client state from $legacy to $dir"
 }
 
 vpn_awg_params_gen() {

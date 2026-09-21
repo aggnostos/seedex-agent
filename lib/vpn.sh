@@ -54,6 +54,7 @@ _vpn_targets() {
 _vpn_retire_legacy() {
 	local p
 	if [ -f /etc/systemd/system/seedex-vpn.service ]; then
+		systemctl is-active --quiet seedex-vpn 2>/dev/null && VPN_LEGACY_RUNNING=1
 		systemctl disable --now seedex-vpn >/dev/null 2>&1 || true
 		rm -f /etc/systemd/system/seedex-vpn.service
 		systemctl daemon-reload
@@ -123,6 +124,7 @@ svc_upgrade() {
 	done
 	for p in $(_vpn_configured); do
 		"vpn_${p}_upgrade"
+		[ "${VPN_LEGACY_RUNNING:-0}" = 0 ] || "vpn_${p}_active" || "vpn_${p}_start"
 	done
 }
 
@@ -153,7 +155,7 @@ svc_restart() {
 svc_status() {
 	local p up=0 n=0
 	for p in $(_vpn_configured); do
-		systemctl is-active --quiet "seedex-vpn-$p" 2>/dev/null && up=1
+		"vpn_${p}_active" && up=1
 		n=$((n + 1))
 	done
 	status_header "VPN" "$up"

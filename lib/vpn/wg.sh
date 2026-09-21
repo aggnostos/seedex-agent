@@ -5,6 +5,7 @@
 vpn_wg_profile() {
 	WG_TOOL="wg"
 	WG_QUICK="wg-quick"
+	WG_CONF_DIR="/etc/wireguard"
 	WG_IFACE="wg0"
 	WG_PORT="51820"
 	WG_NET="10.66.68"
