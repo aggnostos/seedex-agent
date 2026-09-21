@@ -102,15 +102,15 @@ esac
 log "done — seedex $("$BINDIR/sdx" version | awk '{print $2}') installed"
 cat <<'EOF'
 
-Nothing was started — the services are enabled but not running. Bring them up
-when convenient:
+Nothing was started — the services are enabled but not running. Add what the
+server should offer, then bring it up:
 
-  sdx start
+  sdx vpn add awg router              # a VPN client (awg or wg)
+  sdx proxy add vless 443             # a proxy protocol on a port
+  sdx start                           # start every protocol that has a client or a port
 
 Then:
 
   sdx                                 # status
-  sdx vpn add awg router              # a VPN client (awg or wg)
-  sdx proxy add vless 443             # a proxy protocol on a port
   sdx link add router                 # pair a router: prints the command to run on it
 EOF
