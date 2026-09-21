@@ -95,10 +95,11 @@ refusing to install an unverified binary; set SING_BOX_SHA256_${arch_name} in li
 }
 
 svc_upgrade() {
-	[ -x "$BINARY" ] || return 0
-	$BINARY version 2>/dev/null | grep -q "$SING_BOX_VERSION" && return 0
+	local had=0
+	[ -x "$BINARY" ] && $BINARY version 2>/dev/null | grep -q "$SING_BOX_VERSION" && had=1
 	_install_packages
-	systemctl is-active --quiet "$SERVICE" || return 0
+	[ "$had" = 0 ] || return 0
+	systemctl is-active --quiet "$SERVICE" 2>/dev/null || return 0
 	$BINARY check -c "$CONFIG_FILE" ||
 		die "the running config fails 'sing-box check' with v${SING_BOX_VERSION} — sing-box left running on the old binary until restarted"
 	systemctl restart "$SERVICE"
@@ -512,7 +513,7 @@ supported: $PROXY_PROTOCOLS"
 	*[!0-9]*) die "port must be a number: $port" ;;
 	esac
 	[ "$port" -ge 1 ] && [ "$port" -le 65535 ] || die "port out of range: $port"
-	[ -x "$BINARY" ] || die "sing-box not found — run: install.sh"
+	[ -x "$BINARY" ] && [ -f "$SERVICE_FILE" ] || svc_provision >/dev/null
 	_proto_configured "$proto" && die "$proto is already configured on port $(_proto_get "$proto" port)
 remove it first, or rotate its credentials with: sdx proxy rotate $proto"
 	other=$(_port_taken_by "$port" "$proto") && die "port $port is already used by $other"
