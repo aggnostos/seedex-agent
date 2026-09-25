@@ -14,7 +14,22 @@
 
 # Seedex Agent
 
-Seedex Agent: one command turns an Ubuntu server into a VPN and proxy server: WireGuard, AmneziaWG, sing-box, and the Link API that a router running [Seedex](https://github.com/aggnostos/seedex-openwrt) pulls its configs from. The client configs are native WireGuard, AmneziaWG, and sing-box files, so any device with the usual apps can use the same server.
+Seedex Agent: one command turns an Ubuntu server into a VPN and proxy server: WireGuard, AmneziaWG, sing-box, plus the Link API that a router running [Seedex](https://github.com/aggnostos/seedex-openwrt) pulls its configs from. The client configs are native WireGuard, AmneziaWG, and sing-box files, so any device with the usual apps can use the same server.
+
+> [!WARNING]
+> Seedex is under active development. Bugs are likely. Commands, settings, and behavior may change between versions. Read the release notes before you update.
+
+## Features
+
+- **One command to install** — AmneziaWG, WireGuard, a pinned sing-box release, the Link API, the firewall rules, the systemd units.
+- **AmneziaWG with unique obfuscation** — the parameters are generated per installation, so no two servers look alike to deep packet inspection.
+- **Eight proxy protocols** — VLESS Reality, Trojan, Shadowsocks, ShadowTLS, VMess, Hysteria2, TUIC, AnyTLS, each on a port you pick.
+- **Native client configs** — `.conf` for the WireGuard family, `.json` for sing-box, share links for phone and desktop apps. No format of our own, nothing to lock you in.
+- **Clients added live** — a new peer joins the running interface without a restart, so the others stay connected.
+- **Rotation on demand** — server keys, obfuscation parameters, proxy credentials, the API certificate: each can be regenerated when you need it.
+- **Link API for the router** — a paired router pulls its configs on its own and runs a restricted subset of `sdx` on the server. The token is issued once, the certificate is pinned by fingerprint.
+- **No panel, no database** — plain bash with systemd, plus one static binary built from the Go standard library.
+- **amd64 with arm64** — the same install command on both.
 
 ## Requirements
 
@@ -31,7 +46,7 @@ On the server, run the installer as root:
 wget -O - https://github.com/aggnostos/seedex-agent/releases/latest/download/install.sh | bash
 ```
 
-The installer downloads the latest release and installs the `sdx` command, WireGuard, AmneziaWG, a pinned sing-box release, and the Link API. It generates the server keys, opens the ports, and enables the services. Nothing is started yet. To update later, run the same command again.
+The installer downloads the latest release, then installs the `sdx` command, WireGuard, AmneziaWG, a pinned sing-box release, plus the Link API. It generates the server keys, opens the ports, and enables the services. Nothing is started yet. To update later, run the same command again.
 
 ### 2. Set up tunnels
 
@@ -96,4 +111,4 @@ Bug reports, suggestions, and pull requests are welcome.
 
 ## License
 
-AGPL-3.0.
+AGPL-3.0. The Seedex name and logo are covered by the [trademark policy](https://docs.seedex.net/trademark), not by the license.
