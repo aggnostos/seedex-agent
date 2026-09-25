@@ -580,21 +580,23 @@ svc_rotate() {
 }
 
 svc_export() {
-	local protocol="" dir="" link=0
+	local protocol="" dir="" link=0 b64=0
 	while [ $# -gt 0 ]; do
 		case "$1" in
 		-o | --output)
-			[ $# -ge 2 ] || usage "sdx proxy export [<protocol>] [-o DIR | --link]"
+			[ $# -ge 2 ] || usage "sdx proxy export [<protocol>] [-o DIR | --link [--base64]]"
 			dir="${2%/}"
 			shift
 			;;
 		--link) link=1 ;;
-		-*) usage "sdx proxy export [<protocol>] [-o DIR | --link]" ;;
+		--base64) b64=1 ;;
+		-*) usage "sdx proxy export [<protocol>] [-o DIR | --link [--base64]]" ;;
 		*) protocol="$1" ;;
 		esac
 		shift
 	done
-	[ "$link" = 0 ] || [ -z "$dir" ] || usage "sdx proxy export [<protocol>] [-o DIR | --link]"
+	[ "$link" = 0 ] || [ -z "$dir" ] || usage "sdx proxy export [<protocol>] [-o DIR | --link [--base64]]"
+	[ "$b64" = 0 ] || [ "$link" = 1 ] || usage "sdx proxy export [<protocol>] --link --base64"
 	need_cmd jq
 	SERVER_IP=""
 
@@ -607,14 +609,19 @@ svc_export() {
 		[ $# -gt 0 ] || die "no protocols configured — add one with: sdx proxy add <protocol> <port>"
 	fi
 
-	local p first=1 skipped=""
+	local p first=1 skipped="" body=""
 	for p in "$@"; do
 		if [ "$link" = 1 ]; then
 			if [ "$p" = shadowtls ] && [ $# -gt 1 ]; then
 				skipped="${skipped:+$skipped }$p"
 				continue
 			fi
-			_render_link "$p"
+			if [ "$b64" = 1 ]; then
+				body="${body}$(_render_link "$p")
+"
+			else
+				_render_link "$p"
+			fi
 		elif [ -n "$dir" ]; then
 			_write_client_config "$p" "$dir"
 		else
@@ -624,6 +631,7 @@ svc_export() {
 			first=0
 		fi
 	done
+	[ -z "$body" ] || printf '%s\n' "$(printf '%s' "$body" | base64 -w0)"
 	[ -z "$skipped" ] || warn "skipped: $skipped — no share-link format, use the JSON export"
 }
 
@@ -756,7 +764,7 @@ restart	Restart the service
 config	Show connection credentials
 add <protocol> <port>	Add a protocol	Add a protocol on a port and open it: $PROXY_PROTOCOLS
 remove <protocol>	Remove a protocol	Remove a protocol and close its port
-export [protocol] [-o DIR | --link]	Export client configs	Export client configs, one protocol or all, to DIR; --link prints share links (TLS ones with insecure=1)
+export [protocol] [-o DIR | --link [--base64]]	Export client configs	Export client configs, one protocol or all, to DIR; --link prints share links (TLS ones with insecure=1), --base64 encodes them as a subscription
 rotate [protocol]	Regenerate credentials	Regenerate credentials of one protocol or all, keeping ports
 EOF
 }

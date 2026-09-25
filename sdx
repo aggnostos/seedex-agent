@@ -133,7 +133,8 @@ cmd_help() {
 	echo "  start | stop | restart        Control the service"
 	echo "  config                        Show connection credentials"
 	echo "  rotate [protocol]             Regenerate credentials of one protocol or all"
-	echo "  export [...] [-o DIR|--link]  Export client configs to DIR; proxy --link prints share links"
+	echo "  export [...] [-o DIR|--link]  Export client configs to DIR; proxy --link prints share links,"
+	echo "                                --base64 encodes them as a subscription"
 	echo
 	section "Entries (clients in vpn, protocols in proxy, routers in link):"
 	echo "  add <protocol> [<name>]       vpn: add a client (awg, wg)"
