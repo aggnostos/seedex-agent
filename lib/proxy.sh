@@ -607,11 +607,11 @@ svc_export() {
 		[ $# -gt 0 ] || die "no protocols configured — add one with: sdx proxy add <protocol> <port>"
 	fi
 
-	local p first=1
+	local p first=1 skipped=""
 	for p in "$@"; do
 		if [ "$link" = 1 ]; then
 			if [ "$p" = shadowtls ] && [ $# -gt 1 ]; then
-				warn "shadowtls skipped — it has no share-link format, use the JSON export"
+				skipped="${skipped:+$skipped }$p"
 				continue
 			fi
 			_render_link "$p"
@@ -624,6 +624,7 @@ svc_export() {
 			first=0
 		fi
 	done
+	[ -z "$skipped" ] || warn "skipped: $skipped — no share-link format, use the JSON export"
 }
 
 svc_config() {
