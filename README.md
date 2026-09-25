@@ -93,7 +93,7 @@ $ sdx
     vless          443/tcp
 
 [*] Link:
-  Port:           8447/tcp
+  Port:           8282/tcp
   Fingerprint:    sha256//...
   Routers:
     router

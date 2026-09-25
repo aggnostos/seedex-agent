@@ -6,13 +6,20 @@ LINK_DIR="/etc/seedex/link"
 LINK_ROUTERS="$LINK_DIR/routers"
 LINK_CERT="$LINK_DIR/cert.pem"
 LINK_KEY="$LINK_DIR/key.pem"
-LINK_PORT="${SEEDEX_LINK_PORT:-8447}"
+LINK_PORT_DEFAULT="8282"
 
 BINARY="/usr/local/bin/seedex-link"
 RELEASES="https://github.com/aggnostos/seedex-agent/releases/download"
 
 SERVICE="seedex-link"
 SERVICE_FILE="/etc/systemd/system/${SERVICE}.service"
+
+_link_installed_port() {
+	sed -n 's/^ExecStart=.*-listen :\([0-9]*\).*/\1/p' "$SERVICE_FILE" 2>/dev/null | head -1
+}
+
+LINK_PORT="${SEEDEX_LINK_PORT:-$(_link_installed_port)}"
+LINK_PORT="${LINK_PORT:-$LINK_PORT_DEFAULT}"
 
 _arch() {
 	case "$(uname -m)" in

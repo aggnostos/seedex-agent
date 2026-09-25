@@ -26,7 +26,7 @@ type server struct {
 }
 
 func main() {
-	listen := flag.String("listen", ":8447", "address to listen on")
+	listen := flag.String("listen", ":8282", "address to listen on")
 	dir := flag.String("dir", "/etc/seedex/link", "directory with cert.pem, key.pem and routers/")
 	sdx := flag.String("sdx", "/usr/local/bin/sdx", "sdx binary used to export configs")
 	showVersion := flag.Bool("version", false, "print the version and exit")
