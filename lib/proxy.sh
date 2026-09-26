@@ -375,11 +375,31 @@ _apply() {
 	_render_config
 	if systemctl is-active --quiet "$SERVICE"; then
 		systemctl restart "$SERVICE"
+		_still_running
 		echo "  Restarted"
 	elif systemctl is-enabled --quiet "$SERVICE" 2>/dev/null; then
 		systemctl start "$SERVICE"
+		_still_running
 		echo "  Started"
 	fi
+}
+
+_still_running() {
+	sleep 2
+	systemctl is-active --quiet "$SERVICE" && return 0
+	journalctl -u "$SERVICE" -n 5 --no-pager -o cat >&2 2>/dev/null
+	if [ -n "${APPLY_UNDO:-}" ]; then
+		rm -f "$(_proto_file "$APPLY_UNDO")"
+		firewall_delete "seedex-proxy-$APPLY_UNDO"
+		if [ -n "$(_proto_list)" ]; then
+			_render_config
+			systemctl restart "$SERVICE"
+		else
+			systemctl stop "$SERVICE"
+		fi
+		die "sing-box cannot start with $APPLY_UNDO, so $APPLY_UNDO is removed again — see: journalctl -u $SERVICE"
+	fi
+	die "sing-box stopped right after the start — see: journalctl -u $SERVICE"
 }
 
 _need_server_ip() {
@@ -553,7 +573,9 @@ remove it first, or rotate its credentials with: sdx proxy rotate $proto"
 	done
 	echo "  Firewall: allowed $port/$(_proto_transport "$proto" | tr ' ' '+')"
 
+	APPLY_UNDO="$proto"
 	_apply
+	APPLY_UNDO=""
 	echo
 	_print_proto "$proto"
 	echo
