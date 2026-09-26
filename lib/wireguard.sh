@@ -216,6 +216,16 @@ wg_config() {
 	[ "$found" = 1 ] || printf '  %s\n' "no clients"
 }
 
+_wg_free_host() {
+	awk -v net="$WG_NET." '
+		/^[[:space:]]*AllowedIPs/ {
+			n = split($0, f, /[ \t,=]+/)
+			for (i = 1; i <= n; i++)
+				if (index(f[i], net) == 1 && f[i] ~ /\/32$/) used[substr(f[i], length(net) + 1, length(f[i]) - length(net) - 3)] = 1
+		}
+		END { for (h = 2; h <= 254; h++) if (!(h in used)) { print h; exit } exit 1 }' "$WG_CONFIG"
+}
+
 wg_add() {
 	wg_profile "$1"
 	need_root
@@ -236,8 +246,8 @@ wg_add() {
 	[ ! -f "$WG_CLIENTS/$name.conf" ] || die "client '$name' already exists"
 	_wg_load_params
 
-	local host=$((next + 1))
-	[ "$host" -le 254 ] || die "no free addresses left in ${WG_NET}.0/24"
+	local host
+	host=$(_wg_free_host) || die "no free addresses left in ${WG_NET}.0/24"
 
 	local priv pub psk server_pub server_ip addr allowed
 	priv=$("$WG_TOOL" genkey)
