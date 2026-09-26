@@ -109,7 +109,10 @@ cmd_firewall() {
 		) $(
 			. "$(_lib proxy)"
 			_proto_port_specs
-		) "${SEEDEX_LINK_PORT:-8282}/tcp:seedex-link"
+		) $(
+			. "$(_lib link)"
+			echo "${LINK_PORT}/tcp:seedex-link"
+		)
 		echo "Firewall configured"
 		ufw status numbered
 		;;
