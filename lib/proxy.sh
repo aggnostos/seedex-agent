@@ -155,6 +155,25 @@ _proto_port_specs() {
 	done
 }
 
+_port_used_by_host() {
+	local lib="${SEEDEX_LIB:-/usr/local/lib/seedex}" p
+	{
+		for p in $(ssh_ports); do
+			echo "$p/tcp:SSH"
+		done
+		# shellcheck disable=SC1090,SC1091
+		(
+			. "$lib/vpn.sh"
+			_vpn_port_specs
+		)
+		# shellcheck disable=SC1090,SC1091
+		(
+			. "$lib/link.sh"
+			echo "$LINK_PORT/tcp:seedex-link"
+		)
+	} | awk -F: -v s="$1" '$1 == s && !found { print $2; found = 1 } END { exit !found }'
+}
+
 _port_taken_by() {
 	local p
 	for p in $(_proto_list); do
@@ -505,7 +524,7 @@ svc_add() {
 	need_root
 	need_cmd jq
 	need_cmd openssl
-	local proto="${1:-}" port="${2:-}" other
+	local proto="${1:-}" port="${2:-}" other t
 	[ -n "$proto" ] && [ -n "$port" ] || usage "sdx proxy add <protocol> <port>"
 	_proto_supported "$proto" || die "unsupported protocol: $proto
 supported: $PROXY_PROTOCOLS"
@@ -517,6 +536,9 @@ supported: $PROXY_PROTOCOLS"
 	_proto_configured "$proto" && die "$proto is already configured on port $(_proto_get "$proto" port)
 remove it first, or rotate its credentials with: sdx proxy rotate $proto"
 	other=$(_port_taken_by "$port" "$proto") && die "port $port is already used by $other"
+	for t in $(_proto_transport "$proto"); do
+		other=$(_port_used_by_host "$port/$t") && die "port $port/$t is already used by $other"
+	done
 
 	mkdir -p "$PROTO_DIR"
 	chmod 700 "$PROTO_DIR"
@@ -540,14 +562,12 @@ remove it first, or rotate its credentials with: sdx proxy rotate $proto"
 
 svc_remove() {
 	need_root
-	local proto="${1:-}" port t
+	local proto="${1:-}" port
 	[ -n "$proto" ] || usage "sdx proxy remove <protocol>"
 	_proto_configured "$proto" || die "$proto is not configured"
 	port=$(_proto_get "$proto" port)
 
-	for t in $(_proto_transport "$proto"); do
-		firewall_delete "$port/$t"
-	done
+	firewall_delete "seedex-proxy-$proto"
 	rm -f "$(_proto_file "$proto")"
 	echo "Removed $proto (port $port closed)"
 	_apply

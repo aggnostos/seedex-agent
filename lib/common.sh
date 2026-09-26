@@ -146,7 +146,13 @@ firewall_allow() {
 
 firewall_delete() {
 	command -v ufw >/dev/null 2>&1 || return 0
-	ufw --force delete allow "${1%%:*}" >/dev/null 2>&1 || true
+	local n
+	for n in $(ufw status numbered 2>/dev/null | awk -v c="# $1" '
+		substr($0, length($0) - length(c) + 1) == c {
+			sub(/^\[ */, ""); sub(/\].*/, ""); print
+		}' | sort -rn); do
+		ufw --force delete "$n" >/dev/null 2>&1 || true
+	done
 }
 
 firewall_route_allow() {
