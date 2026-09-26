@@ -105,6 +105,7 @@ _rand_between() {
 }
 
 get_ip() {
+	[ -n "$_SEEDEX_IP" ] || _SEEDEX_IP="${SEEDEX_SERVER_IP:-}"
 	[ -n "$_SEEDEX_IP" ] || {
 		local url reply
 		for url in https://ifconfig.me https://icanhazip.com; do
@@ -116,9 +117,13 @@ get_ip() {
 			_SEEDEX_IP="$reply"
 			break
 		done
-		[ -n "$_SEEDEX_IP" ] || _SEEDEX_IP="<SERVER_IP>"
 	}
+	[ -n "$_SEEDEX_IP" ] || return 1
 	printf '%s\n' "$_SEEDEX_IP"
+}
+
+need_ip() {
+	get_ip || die "cannot tell this server's public IPv4 address — set it with SEEDEX_SERVER_IP=<address>"
 }
 
 server_name() {

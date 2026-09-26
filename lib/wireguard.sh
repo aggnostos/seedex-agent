@@ -197,7 +197,7 @@ wg_config() {
 	wg_profile "$1"
 	[ -f "$WG_CONFIG" ] || return 0
 	local server_ip pub
-	server_ip=$(get_ip)
+	server_ip=$(get_ip || echo unknown)
 	pub=$(cat "$WG_DIR/.server_pubkey" 2>/dev/null || echo "<unknown>")
 	section "$WG_TITLE (${WG_PORT}/udp):"
 	field "Endpoint:" "${server_ip}:${WG_PORT}"
@@ -243,7 +243,7 @@ wg_add() {
 	pub=$(echo "$priv" | "$WG_TOOL" pubkey)
 	psk=$("$WG_TOOL" genpsk)
 	server_pub=$(cat "$WG_DIR/.server_pubkey")
-	server_ip=$(get_ip)
+	server_ip=$(need_ip) || exit 1
 	addr="${WG_NET}.${host}/32, ${WG_NET6}::${host}/128"
 	allowed="${WG_NET}.${host}/32,${WG_NET6}::${host}/128"
 

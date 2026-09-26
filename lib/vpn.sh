@@ -170,7 +170,7 @@ svc_status() {
 svc_config() {
 	local p n=0
 	section "Server:"
-	printf '  %s\n' "$(get_ip)"
+	printf '  %s\n' "$(get_ip || echo unknown)"
 	for p in $(_vpn_targets "${1:-}"); do
 		"vpn_${p}_config"
 		n=$((n + 1))

@@ -216,14 +216,14 @@ svc_add() {
 	[ ! -f "$LINK_ROUTERS/$router.token" ] || die "router '$router' is already paired
 revoke it first with: sdx link remove $router"
 
+	local url fp
+	url="https://$(need_ip):${LINK_PORT}" || exit 1
 	token=$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=')
 	mkdir -p "$LINK_ROUTERS"
 	chmod 700 "$LINK_ROUTERS"
 	printf '%s' "$token" | sha256sum | awk '{print $1}' >"$LINK_ROUTERS/$router.token"
 	chmod 600 "$LINK_ROUTERS/$router.token"
 
-	local url fp
-	url="https://$(get_ip):${LINK_PORT}"
 	fp=$(_fingerprint)
 	echo "Router '$router' paired."
 	echo

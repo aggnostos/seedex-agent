@@ -383,7 +383,7 @@ _apply() {
 }
 
 _need_server_ip() {
-	[ -n "$SERVER_IP" ] || SERVER_IP=$(get_ip)
+	[ -n "$SERVER_IP" ] || SERVER_IP=$(need_ip) || exit 1
 }
 
 _render_client_config() {
