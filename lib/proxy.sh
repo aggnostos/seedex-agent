@@ -675,8 +675,8 @@ svc_provision() {
 	echo "  Service installed and enabled (starts on boot)"
 
 	echo "[5/5] Configuring firewall and logrotate..."
-	# shellcheck disable=SC2086,SC2046
-	firewall_apply $SEEDEX_PORTS_BASE $(_proto_port_specs)
+	# shellcheck disable=SC2046
+	firewall_apply $(_proto_port_specs)
 	echo "  Firewall configured"
 
 	logrotate_install seedex-proxy "$LOG_FILE"

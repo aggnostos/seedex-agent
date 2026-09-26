@@ -6,8 +6,6 @@ SEEDEX_COMMON_SH=1
 SEEDEX_VERSION="$(cat "${SEEDEX_LIB:-/usr/local/lib/seedex}/version" 2>/dev/null || echo unknown)"
 readonly SEEDEX_VERSION
 
-readonly SEEDEX_PORTS_BASE="22/tcp:SSH"
-
 die() {
 	printf '%s: %s\n' "${0##*/}" "$*" >&2
 	exit 1
@@ -156,11 +154,27 @@ firewall_route_allow() {
 	ufw route allow in on "$1" comment "$2" >/dev/null
 }
 
+ssh_ports() {
+	{
+		sshd -T 2>/dev/null | awk '$1 == "port" { print $2 }'
+		ss -Htlnp 2>/dev/null | awk '/"sshd"/ { sub(/.*:/, "", $4); print $4 }'
+	} | sort -un
+}
+
 firewall_apply() {
 	firewall_ensure
-	local spec
+	local spec ports p
+	ports=$(ssh_ports)
+	for p in $ports; do
+		firewall_allow "$p/tcp:SSH"
+	done
 	for spec in "$@"; do
 		firewall_allow "$spec"
 	done
+	ufw status | grep -q '^Status: active' && return 0
+	if [ -z "$ports" ]; then
+		warn "cannot tell which port sshd listens on, ufw stays disabled — allow SSH and run 'ufw enable' yourself"
+		return 0
+	fi
 	ufw --force enable >/dev/null
 }

@@ -80,8 +80,7 @@ vpn_forwarding_enable() {
 vpn_host_provision() {
 	need_root
 	vpn_forwarding_enable || true
-	# shellcheck disable=SC2086
-	firewall_apply $SEEDEX_PORTS_BASE
+	firewall_apply
 }
 
 svc_provision() {
@@ -102,8 +101,7 @@ svc_provision() {
 	fi
 
 	echo "[3/3] Configuring firewall..."
-	# shellcheck disable=SC2086
-	firewall_apply $SEEDEX_PORTS_BASE
+	firewall_apply
 	echo "  Enabled"
 
 	echo "Configured protocols:"
