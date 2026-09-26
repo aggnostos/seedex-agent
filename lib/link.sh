@@ -10,6 +10,7 @@ LINK_PORT_DEFAULT="8282"
 
 BINARY="/usr/local/bin/seedex-link"
 RELEASES="https://github.com/aggnostos/seedex-agent/releases/download"
+LINK_INSTALL_HINT="wget -O - https://github.com/aggnostos/seedex-agent/releases/latest/download/install.sh | bash -s link"
 
 SERVICE="seedex-link"
 SERVICE_FILE="/etc/systemd/system/${SERVICE}.service"
@@ -198,7 +199,7 @@ svc_status() {
 	if [ -f "$LINK_CERT" ]; then
 		field "Fingerprint:" "$(_fingerprint)"
 	else
-		field "Certificate:" "missing (run: ./install.sh link)"
+		field "Certificate:" "missing — run: $LINK_INSTALL_HINT"
 	fi
 	for r in $(_routers); do
 		[ "$n" -gt 0 ] || echo "  Routers:"
@@ -213,7 +214,7 @@ svc_add() {
 	local router="${1:-}" token
 	[ -n "$router" ] || usage "sdx link add <router>"
 	_check_name "$router"
-	[ -f "$LINK_CERT" ] || die "not provisioned — run: install.sh link"
+	[ -f "$LINK_CERT" ] || die "not provisioned — run: $LINK_INSTALL_HINT"
 	[ ! -f "$LINK_ROUTERS/$router.token" ] || die "router '$router' is already paired
 revoke it first with: sdx link remove $router"
 
