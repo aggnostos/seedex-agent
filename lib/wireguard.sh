@@ -216,6 +216,12 @@ wg_config() {
 	[ "$found" = 1 ] || printf '  %s\n' "no clients"
 }
 
+_wg_lock() {
+	mkdir -p "$WG_ROOT"
+	exec 9>"$WG_ROOT/.$WG_PROTO.lock"
+	flock 9
+}
+
 _wg_free_host() {
 	awk -v net="$WG_NET." '
 		/^[[:space:]]*AllowedIPs/ {
@@ -229,6 +235,7 @@ _wg_free_host() {
 wg_add() {
 	wg_profile "$1"
 	need_root
+	_wg_lock
 	local name="${2:-}"
 	case "$name" in
 	"") ;;
@@ -322,6 +329,7 @@ _wg_drop_peer() {
 wg_remove() {
 	wg_profile "$1"
 	need_root
+	_wg_lock
 	shift
 	local all=0 name=""
 	while [ $# -gt 0 ]; do
