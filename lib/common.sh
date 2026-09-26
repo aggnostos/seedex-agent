@@ -172,18 +172,21 @@ ssh_ports() {
 	} | sort -un
 }
 
-firewall_apply() {
-	firewall_ensure
-	local spec ports p
-	ports=$(ssh_ports)
-	for p in $ports; do
+firewall_rules() {
+	local spec p
+	for p in $(ssh_ports); do
 		firewall_allow "$p/tcp:SSH"
 	done
 	for spec in "$@"; do
 		firewall_allow "$spec"
 	done
+}
+
+firewall_apply() {
+	firewall_ensure
+	firewall_rules "$@"
 	ufw status | grep -q '^Status: active' && return 0
-	if [ -z "$ports" ]; then
+	if [ -z "$(ssh_ports)" ]; then
 		warn "cannot tell which port sshd listens on, ufw stays disabled — allow SSH and run 'ufw enable' yourself"
 		return 0
 	fi

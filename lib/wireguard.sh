@@ -176,7 +176,8 @@ wg_stop() {
 wg_upgrade() {
 	wg_profile "$1"
 	_wg_migrate_layout
-	vpn_host_provision
+	vpn_forwarding_enable || true
+	! command -v ufw >/dev/null 2>&1 || firewall_rules
 	_wg_hook maintain
 }
 
