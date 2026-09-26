@@ -62,15 +62,25 @@ install -m 0644 "$SRC/version" "$LIBDIR/version"
 install -m 0755 "$SRC/sdx" "$BINDIR/sdx"
 echo "  $BINDIR/sdx"
 
-provision() {
-	log "provisioning $1"
+run_lib() {
+	local svc="$1" fn="$2" what="$3" rc
+	set +e
 	(
+		set -e
 		# shellcheck source=lib/common.sh
 		. "$LIBDIR/common.sh"
 		# shellcheck source=lib/vpn.sh
-		. "$LIBDIR/${1}.sh"
-		svc_provision
+		. "$LIBDIR/${svc}.sh"
+		"$fn"
 	)
+	rc=$?
+	set -e
+	[ "$rc" -eq 0 ] || die "$what $svc failed (exit $rc) — the output above shows the last step it reached"
+}
+
+provision() {
+	log "provisioning $1"
+	run_lib "$1" svc_provision provisioning
 	echo
 }
 
@@ -78,13 +88,7 @@ echo
 if [ "$SVC" = files ]; then
 	[ -x /usr/local/bin/seedex-link ] || provision link
 	for svc in vpn proxy link; do
-		(
-			# shellcheck source=lib/common.sh
-			. "$LIBDIR/common.sh"
-			# shellcheck source=lib/vpn.sh
-			. "$LIBDIR/${svc}.sh"
-			svc_upgrade
-		)
+		run_lib "$svc" svc_upgrade updating
 	done
 	log "done — seedex $("$BINDIR/sdx" version | awk '{print $2}') files updated"
 	exit 0

@@ -15,7 +15,8 @@ SERVICE="seedex-link"
 SERVICE_FILE="/etc/systemd/system/${SERVICE}.service"
 
 _link_installed_port() {
-	sed -n 's/^ExecStart=.*-listen :\([0-9]*\).*/\1/p' "$SERVICE_FILE" 2>/dev/null | head -1
+	[ -f "$SERVICE_FILE" ] || return 0
+	sed -n 's/^ExecStart=.*-listen :\([0-9]*\).*/\1/p' "$SERVICE_FILE"
 }
 
 LINK_PORT="${SEEDEX_LINK_PORT:-$(_link_installed_port)}"
