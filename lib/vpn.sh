@@ -66,11 +66,20 @@ _vpn_retire_legacy() {
 	done
 }
 
+_uplink_ra_key() {
+	local dev
+	dev=$(ip -4 route show default 2>/dev/null | awk '!dev { for (i = 1; i < NF; i++) if ($i == "dev") { dev = $(i + 1); print dev; break } }')
+	[ -n "$dev" ] || return 0
+	dev=$(printf '%s' "$dev" | tr '.' '/')
+	[ "$(sysctl -n "net.ipv6.conf.$dev.accept_ra" 2>/dev/null)" = 1 ] || return 0
+	echo "net.ipv6.conf.$dev.accept_ra=2"
+}
+
 vpn_forwarding_enable() {
-	local key changed=0
-	for key in net.ipv4.ip_forward net.ipv6.conf.all.forwarding; do
-		grep -q "^${key}=1" /etc/sysctl.conf 2>/dev/null && continue
-		echo "${key}=1" >>/etc/sysctl.conf
+	local entry changed=0
+	for entry in net.ipv4.ip_forward=1 net.ipv6.conf.all.forwarding=1 $(_uplink_ra_key); do
+		grep -q "^${entry}\$" /etc/sysctl.conf 2>/dev/null && continue
+		echo "$entry" >>/etc/sysctl.conf
 		changed=1
 	done
 	[ "$changed" = 1 ] || [ "$(sysctl -n net.ipv4.ip_forward)" != 1 ] || return 1
