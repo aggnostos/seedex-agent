@@ -16,6 +16,8 @@
 
 Seedex Agent: one command turns an Ubuntu server into a VPN and proxy server: WireGuard, AmneziaWG, sing-box, plus the Link API that a router running [Seedex](https://github.com/aggnostos/seedex-openwrt) pulls its configs from. The client configs are native WireGuard, AmneziaWG, and sing-box files, so any device with the usual apps can use the same server.
 
+Its goal is to make running your own VPN and proxy server easier by bringing installation, client management, and configuration updates together in a single command-line interface.
+
 > [!WARNING]
 > Seedex is under active development. Bugs are likely. Commands, settings, and behavior may change between versions. Read the release notes before you update.
 
@@ -108,6 +110,11 @@ $ sdx
 ## Contributing
 
 Bug reports, suggestions, and pull requests are welcome.
+
+## Community
+
+Join the [Telegram chat (Russian-speaking)](https://t.me/seedex_net) for questions, setup help, and discussion.
+For bug reports and feature requests in English, please use [GitHub Issues](https://github.com/aggnostos/seedex-agent/issues).
 
 ## License
 
