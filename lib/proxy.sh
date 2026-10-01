@@ -411,22 +411,41 @@ _render_client_config() {
 	_need_server_ip
 	outbounds=$(_outbounds "$protocol") ||
 		die "cannot render outbounds for $protocol"
+	_client_config "$outbounds"
+}
 
-	local server_cidrs='[]'
+# Every protocol in one config, the server's single unit on a client.
+_render_server_config() {
+	local p o outbounds='[]'
+	_need_server_ip
+	for p in $(_proto_list); do
+		o=$(_outbounds "$p") || die "cannot render outbounds for $p"
+		outbounds=$(jq -n --argjson a "$outbounds" --argjson b "$o" '$a + $b')
+	done
+	_client_config "$outbounds"
+}
+
+# A client config over the given outbounds. Several entry outbounds go into
+# a urltest group, which keeps the traffic on the fastest; a transport that
+# another outbound runs over as its detour is no entry.
+_client_config() {
+	local outbounds="$1" server_cidrs='[]'
 	case "$SERVER_IP" in
 	"" | *[!0-9.]*) ;;
 	*) server_cidrs="[\"${SERVER_IP}/32\"]" ;;
 	esac
 
 	jq -n --argjson outbounds "$outbounds" \
-		--argjson cidrs "$server_cidrs" \
-		--arg tag "$protocol" '
-		{
+		--argjson cidrs "$server_cidrs" '
+		[ $outbounds[] | .detour // empty ] as $legs
+		| [ $outbounds[] | .tag | select(. as $t | $legs | index($t) | not) ] as $entries
+		| (if ($entries | length) > 1 then "auto" else $entries[0] end) as $final
+		| {
 		  log: { level: "warn", timestamp: true },
 		  dns: {
 		    servers: [
 		      { type: "https", tag: "remote-dns", server: "1.1.1.1",
-		        path: "/dns-query", domain_resolver: "local-dns", detour: $tag },
+		        path: "/dns-query", domain_resolver: "local-dns", detour: $final },
 		      { type: "udp", tag: "local-dns", server: "1.0.0.1" }
 		    ],
 		    final: "remote-dns",
@@ -436,7 +455,12 @@ _render_client_config() {
 		    { type: "tun", tag: "tun-in", interface_name: "proxy0",
 		      address: ["172.19.0.1/30"], auto_route: false, stack: "gvisor" }
 		  ],
-		  outbounds: ($outbounds + [{ type: "direct", tag: "direct" }]),
+		  outbounds: ($outbounds
+		    + (if ($entries | length) > 1
+		       then [{ type: "urltest", tag: "auto", outbounds: $entries,
+		               url: "https://www.gstatic.com/generate_204", interval: "1m" }]
+		       else [] end)
+		    + [{ type: "direct", tag: "direct" }]),
 		  route: {
 		    rules: [
 		      { inbound: "tun-in", action: "sniff" },
@@ -444,7 +468,7 @@ _render_client_config() {
 		      { ip_is_private: true, outbound: "direct" },
 		      { ip_cidr: ($cidrs + ["1.0.0.1/32"]), outbound: "direct" }
 		    ],
-		    final: $tag,
+		    final: $final,
 		    auto_detect_interface: true,
 		    default_domain_resolver: "local-dns"
 		  }
@@ -499,10 +523,11 @@ _render_link() {
 }
 
 _write_client_config() {
-	local protocol="$1" dir="$2" path
+	local dir="$1" name="$2" path
+	shift 2
 	mkdir -p "$dir"
-	path="$dir/$(config_basename "$protocol").json"
-	_render_client_config "$protocol" >"$path"
+	path="$dir/$(config_basename "$name").json"
+	"$@" >"$path"
 	chmod 600 "$path"
 	echo "$path"
 }
@@ -651,7 +676,16 @@ svc_export() {
 		[ $# -gt 0 ] || die "no protocols configured — add one with: sdx proxy add <protocol> <port>"
 	fi
 
-	local p first=1 skipped="" body=""
+	if [ "$link" = 0 ] && [ -z "$protocol" ]; then
+		if [ -n "$dir" ]; then
+			_write_client_config "$dir" proxy _render_server_config
+		else
+			_render_server_config
+		fi
+		return
+	fi
+
+	local p skipped="" body=""
 	for p in "$@"; do
 		if [ "$link" = 1 ]; then
 			if [ "$p" = shadowtls ] && [ $# -gt 1 ]; then
@@ -665,12 +699,9 @@ svc_export() {
 				_render_link "$p"
 			fi
 		elif [ -n "$dir" ]; then
-			_write_client_config "$p" "$dir"
+			_write_client_config "$dir" "$p" _render_client_config "$p"
 		else
-			[ "$first" = 1 ] || echo
-			[ $# -eq 1 ] || echo "# $p"
 			_render_client_config "$p"
-			first=0
 		fi
 	done
 	[ -z "$body" ] || printf '%s\n' "$(printf '%s' "$body" | base64 -w0)"
@@ -806,7 +837,7 @@ restart	Restart the service
 config	Show connection credentials
 add <protocol> <port>	Add a protocol	Add a protocol on a port and open it: $PROXY_PROTOCOLS
 remove <protocol>	Remove a protocol	Remove a protocol and close its port
-export [protocol] [-o DIR | --link [--base64]]	Export client configs	Export client configs, one protocol or all, to DIR; --link prints share links (TLS ones with insecure=1), --base64 encodes them as a subscription
+export [protocol] [-o DIR | --link [--base64]]	Export the client config	Export the client config, to stdout or DIR: every protocol in one, measured by urltest, or the one named; --link prints share links (TLS ones with insecure=1), --base64 encodes them as a subscription
 rotate [protocol]	Regenerate credentials	Regenerate credentials of one protocol or all, keeping ports
 EOF
 }
