@@ -126,10 +126,10 @@ svc_provision() {
 svc_upgrade() {
 	local p
 	_vpn_retire_legacy
-	for p in $VPN_PROTOCOLS; do
-		"vpn_${p}_packages"
-	done
+	# Only what the server runs: an update must not pull in the packages of
+	# a protocol nobody configured, nor fail on them.
 	for p in $(_vpn_configured); do
+		"vpn_${p}_packages"
 		"vpn_${p}_upgrade"
 		[ "${VPN_LEGACY_RUNNING:-0}" = 0 ] || "vpn_${p}_active" || "vpn_${p}_start"
 	done
