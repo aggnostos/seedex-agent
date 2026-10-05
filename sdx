@@ -22,6 +22,9 @@ _svc() {
 	shift
 	# shellcheck disable=SC1090  # path resolved at runtime
 	(
+		# Bash drops -e inside $(...), where _fan_out runs a service; set
+		# here, it stops the service at its first failure there too.
+		set -e
 		. "$(_lib "$svc")"
 		svc_dispatch "$@"
 	)
@@ -71,15 +74,18 @@ cmd_status() {
 _fan_out() {
 	local action="$1"
 	shift
-	local svc out ran=0 status=0
+	local svc out rc ran=0 status=0
 
 	for svc in $SEEDEX_SERVICES; do
 		_svc_has "$svc" "$action" || continue
 		ran=1
 		printf '%s:\n' "$(_svc_label "$svc")"
-		if ! out=$(_svc "$svc" "$action" "$@" 2>&1); then
-			status=1
-		fi
+		# Outside a condition, so that the -e of the service still holds.
+		set +e
+		out=$(_svc "$svc" "$action" "$@" 2>&1)
+		rc=$?
+		set -e
+		[ "$rc" = 0 ] || status=1
 		if [ -n "$out" ]; then
 			printf '%s\n' "$out" | indent
 		fi
