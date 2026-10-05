@@ -8,7 +8,7 @@ WG_LOG_DIR="/var/log/seedex-vpn"
 
 wg_bind() {
 	local proto="$1" action
-	for action in port packages configured active provision genconfig add remove export rotate config status start stop upgrade; do
+	for action in port packages configured active provision genconfig add remove clients export rotate config status start stop upgrade; do
 		eval "vpn_${proto}_${action}() { wg_${action} $proto \"\$@\"; }"
 	done
 }
@@ -373,6 +373,7 @@ wg_remove() {
 }
 
 wg_clients() {
+	wg_profile "$1"
 	local f
 	for f in "$WG_CLIENTS"/*.conf; do
 		[ -f "$f" ] || continue
@@ -389,7 +390,7 @@ wg_export() {
 		[ -f "$WG_CLIENTS/$name.conf" ] || die "$WG_PROTO client '$name' not found"
 		clients=("$name")
 	else
-		mapfile -t clients < <(wg_clients)
+		mapfile -t clients < <(wg_clients "$WG_PROTO")
 		[ "${#clients[@]}" -gt 0 ] || die "$WG_PROTO has no clients — run: sdx vpn add $WG_PROTO <name>"
 	fi
 	for c in "${clients[@]}"; do

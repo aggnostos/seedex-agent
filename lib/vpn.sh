@@ -222,11 +222,14 @@ svc_export() {
 	done
 	local first=1
 	for p in $(_vpn_targets "$proto"); do
+		# A protocol without clients has nothing to export, and failing on
+		# it would hide the clients of the next one.
+		[ -n "$proto" ] || [ -n "$("vpn_${p}_clients")" ] || continue
 		[ "$first" = 1 ] || [ -n "$dir" ] || echo
 		"vpn_${p}_export" "$name" "$dir"
 		first=0
 	done
-	[ "$first" = 0 ] || die "no protocols configured — add a client with: sdx vpn add <protocol> <name>"
+	[ "$first" = 0 ] || die "no clients — add one with: sdx vpn add <protocol> <name>"
 }
 
 svc_rotate() {
