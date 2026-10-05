@@ -254,6 +254,7 @@ svc_remove() {
 	need_root
 	local router="${1:-}"
 	[ -n "$router" ] || usage "sdx link remove <router>"
+	_check_name "$router"
 	[ -f "$LINK_ROUTERS/$router.token" ] || die "router '$router' is not paired"
 	rm -f "$LINK_ROUTERS/$router.token"
 	echo "Router '$router' unpaired"
