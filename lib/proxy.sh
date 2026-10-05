@@ -365,6 +365,7 @@ _render_config() {
 	}' >"$tmp"
 	if [ -x "$BINARY" ] && ! $BINARY check -c "$tmp" 2>/dev/null; then
 		rm -f "$tmp"
+		_apply_undo
 		die "rendered config fails 'sing-box check' — nothing was changed"
 	fi
 	mv "$tmp" "$CONFIG_FILE"
@@ -384,20 +385,40 @@ _apply() {
 	fi
 }
 
+# Takes back what a failed apply brought in: the protocol add just wrote and
+# opened, or the credentials rotate just replaced.
+_apply_undo() {
+	local p f
+	if [ -n "${APPLY_UNDO:-}" ]; then
+		rm -f "$(_proto_file "$APPLY_UNDO")"
+		firewall_delete "seedex-proxy-$APPLY_UNDO"
+	fi
+	for p in ${APPLY_RESTORE:-}; do
+		f=$(_proto_file "$p")
+		[ ! -f "$f.prev" ] || mv -f "$f.prev" "$f"
+	done
+}
+
 _still_running() {
 	sleep 2
 	systemctl is-active --quiet "$SERVICE" && return 0
 	journalctl -u "$SERVICE" -n 5 --no-pager -o cat >&2 2>/dev/null
-	if [ -n "${APPLY_UNDO:-}" ]; then
-		rm -f "$(_proto_file "$APPLY_UNDO")"
-		firewall_delete "seedex-proxy-$APPLY_UNDO"
+	if [ -n "${APPLY_UNDO:-}${APPLY_RESTORE:-}" ]; then
+		local what
+		if [ -n "${APPLY_UNDO:-}" ]; then
+			what="$APPLY_UNDO, so $APPLY_UNDO is removed again"
+		else
+			what="the new credentials, so the previous ones are back"
+		fi
+		_apply_undo
+		APPLY_UNDO="" APPLY_RESTORE=""
 		if [ -n "$(_proto_list)" ]; then
 			_render_config
 			systemctl restart "$SERVICE"
 		else
 			systemctl stop "$SERVICE"
 		fi
-		die "sing-box cannot start with $APPLY_UNDO, so $APPLY_UNDO is removed again — see: journalctl -u $SERVICE"
+		die "sing-box cannot start with $what — see: journalctl -u $SERVICE"
 	fi
 	die "sing-box stopped right after the start — see: journalctl -u $SERVICE"
 }
@@ -635,11 +656,15 @@ svc_rotate() {
 	for p in "$@"; do
 		port=$(_proto_get "$p" port)
 		backup_file "$(_proto_file "$p")"
+		cp -p "$(_proto_file "$p")" "$(_proto_file "$p").prev"
 		_gen_proto "$p" "$port" >"$(_proto_file "$p")"
 		chmod 600 "$(_proto_file "$p")"
 		echo "Rotated $p (port $port kept)"
 	done
+	APPLY_RESTORE="$*"
 	_apply
+	APPLY_RESTORE=""
+	for p in "$@"; do rm -f "$(_proto_file "$p").prev"; done
 	echo
 	for p in "$@"; do _print_proto "$p"; done
 	echo
