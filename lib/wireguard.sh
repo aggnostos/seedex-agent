@@ -249,6 +249,11 @@ wg_add() {
 	[ -n "$name" ] || {
 		name="$WG_PROTO"
 		[ "$next" -eq 1 ] || name="$WG_PROTO-$next"
+		# A client named by hand may hold the number already.
+		while [ -f "$WG_CLIENTS/$name.conf" ]; do
+			next=$((next + 1))
+			name="$WG_PROTO-$next"
+		done
 	}
 	[ ! -f "$WG_CLIENTS/$name.conf" ] || die "client '$name' already exists"
 	_wg_load_params
