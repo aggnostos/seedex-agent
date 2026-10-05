@@ -105,6 +105,13 @@ EOU
 	systemctl enable "$SERVICE" >/dev/null 2>&1
 }
 
+# A server installed without the link has no binary, and a unit for it would
+# fail at every boot: start, stop and restart leave it alone.
+_link_absent() {
+	[ ! -x "$BINARY" ] || return 1
+	echo "not installed — install it with: $LINK_INSTALL_HINT"
+}
+
 _ensure_service() {
 	[ -f "$SERVICE_FILE" ] || _install_service
 }
@@ -164,6 +171,7 @@ svc_upgrade() {
 
 svc_start() {
 	need_root
+	! _link_absent || return 0
 	_ensure_service
 	if systemctl is-active --quiet "$SERVICE"; then
 		echo "Already running"
@@ -175,6 +183,7 @@ svc_start() {
 
 svc_stop() {
 	need_root
+	! _link_absent || return 0
 	_ensure_service
 	if ! systemctl is-active --quiet "$SERVICE"; then
 		echo "Not running"
@@ -186,6 +195,7 @@ svc_stop() {
 
 svc_restart() {
 	need_root
+	! _link_absent || return 0
 	_ensure_service
 	systemctl restart "$SERVICE"
 	echo "Restarted"
