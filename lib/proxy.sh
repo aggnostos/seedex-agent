@@ -174,11 +174,20 @@ _port_used_by_host() {
 	} | awk -F: -v s="$1" '$1 == s && !found { print $2; found = 1 } END { exit !found }'
 }
 
+# A TCP protocol and a UDP one share a port: vless and hysteria2 on 443.
 _port_taken_by() {
-	local p
+	local p t
 	for p in $(_proto_list); do
 		[ "$p" = "$2" ] && continue
-		[ "$(_proto_get "$p" port)" = "$1" ] && echo "$p" && return 0
+		[ "$(_proto_get "$p" port)" = "$1" ] || continue
+		for t in $(_proto_transport "$p"); do
+			case " $(_proto_transport "$2") " in
+			*" $t "*)
+				echo "$p"
+				return 0
+				;;
+			esac
+		done
 	done
 	return 1
 }
